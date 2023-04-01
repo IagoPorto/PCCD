@@ -13,14 +13,14 @@ struct msgbuf_solicitud{
   int peticion;
 };
 struct msgbuf_testigo{
-  int id;
+  long id;
   int atendidas[N];
 };
 
 bool testigo = false;
 bool dentro = false;
 int mi_id;
-int atendidas[N], peticiones[N];
+int atendidas[N] = {}, peticiones[N] = {};
 int buzones_nodos[N];
 int buzon_testigo;
 
@@ -41,6 +41,7 @@ int main(int argc, char *argv[]){
 
     //VARIABLES
     mi_id = atoi(argv[1]);
+    long yo = mi_id;
     int i = 0;
     int mi_peticion = 0;
     struct msgbuf_testigo msg_testigo;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]){
     msg_solicitud.id = mi_id;
 
     //INICIALIZACIÓN TESTIGO
-    if(mi_id == 0){
+    if(mi_id == 1){
         testigo = true;
     }
 
@@ -61,13 +62,11 @@ int main(int argc, char *argv[]){
     sem_init(&sem_buzones_nodos, 0, 1);
     sem_init(&sem_buzon_testigo, 0, 1);
 
-    //INICIALIZACIÓN DE VECTOR ATENDIDAS, PETICIONES Y BUZONES DE LOS NODOS.
-    for (i; i < N; i++){
+    //INICIALIZACIÓN BUZONES DE LOS NODOS.
+    for (i = 0; i < N; i++){
 
-        atendidas[i] = 0;
-        peticiones[i] = 0;
         buzones_nodos[i] = msgget(i + 1, IPC_CREAT | 0777);
-        printf("El id del buzón del nodo %i es: %i.\n", i, buzones_nodos[i]);
+        printf("El id del buzón del nodo %i es: %i.\n", i + 1, buzones_nodos[i]);
 
         if(buzones_nodos[i] == -1){
 
@@ -76,8 +75,8 @@ int main(int argc, char *argv[]){
     }
 
     //INICIALIZACIÓN BUZÓN TESTIGO
-    buzon_testigo = msgget(100, IPC_CREAT | 0777);
-    printf("La cola del testigo tiene id: %i.\n", buzon_testigo);
+    buzon_testigo = msgget(N + 1, IPC_CREAT | 0777);
+    printf("La cola del TESTIGO tiene id: %i.\n", buzon_testigo);
 
     if(buzon_testigo == -1){
         perror("No se creó el mensaje\n");
@@ -106,36 +105,32 @@ int main(int argc, char *argv[]){
             msg_solicitud.peticion = mi_peticion;
 
             //ENVIO PETICIONES
-            i = 0;
-            for(i; i < N; i++){
+            for(i = 0; i < N; i++){
                 
-                printf("Enviando solicitudes...");
-                sem_wait(&sem_mi_id);
-                if(mi_id == i){
+                if(yo - 1 == i){
 
-                    sem_post(&sem_mi_id);
                     printf("No me voy a enviar un mensaje a mi mismo\n");
                     continue;
 
                 }else{
 
-                    sem_post(&sem_mi_id);
+                    printf("Enviando solicitud al nodo: %d\n", i + 1);
                     sem_wait(&sem_buzones_nodos);
                     if(msgsnd(buzones_nodos[i], &msg_solicitud, sizeof(msg_solicitud), 0) == -1){
 
                         sem_post(&sem_buzones_nodos);
-                        printf("\nERROR: Hubo un error enviando el mensaje al nodo: %i.\n", i);
+                        printf("\n\tERROR: Hubo un error enviando el mensaje al nodo: %i.\n", i);
                     }else{
                         
                         sem_post(&sem_buzones_nodos);
-                        printf("Mensaje enviado con exito. \n");
+                        printf("Mensaje enviado con EXITO. \n");
                     }
                 }
             }
 
             //RECIBIMOS EL TESTIGO
             sem_wait(&sem_buzon_testigo);
-            if(msgrcv(buzon_testigo, &msg_testigo, sizeof(msg_testigo), mi_id, 0) == -1){
+            if(msgrcv(buzon_testigo, &msg_testigo, sizeof(msg_testigo), yo, 0) == -1){
 
                 sem_post(&sem_buzon_testigo);
                 printf("\n\n\tERROR: Hubo un error al recibir el testigo\n");
@@ -149,8 +144,7 @@ int main(int argc, char *argv[]){
             printf("He recibido el testigo.\n");
 
             //ACTUALIZAMOS VECTOR ATENDIDAS
-            i= 0;
-            for(i; i < N; i++){
+            for(i = 0; i < N; i++){
                 sem_wait(&sem_atendidas);
                 atendidas[i] = msg_testigo.atendidas[i];
                 sem_post(&sem_atendidas);
@@ -161,7 +155,7 @@ int main(int argc, char *argv[]){
         }
 
         //ENTRAMOS DENTRO DE LA SECCIÓN CRÍTICA
-        printf("Es mi TURNO.\n");
+        printf("\nEs mi TURNO.\n");
         sem_wait(&sem_dentro);
         dentro = true;
         sem_post(&sem_dentro);
@@ -171,8 +165,10 @@ int main(int argc, char *argv[]){
 
         //ACTUALIZAMOS VECTOR ANTENDIDAS Y VARIABLE DENTRO
         sem_wait(&sem_atendidas);
-        atendidas[mi_id] = mi_peticion;
+        sem_wait(&sem_mi_id);
+        atendidas[mi_id - 1] = mi_peticion;
         sem_post(&sem_atendidas);
+        sem_post(&sem_mi_id);
 
         sem_wait(&sem_dentro);
         dentro = false;
@@ -189,37 +185,45 @@ int main(int argc, char *argv[]){
 void *receptor(void *n){
 
     struct msgbuf_solicitud msg_peticion;
+    sem_wait(&sem_mi_id);
+    int mi_id_receptor = mi_id - 1;
+    sem_post(&sem_mi_id);
+    sem_wait(&sem_buzones_nodos);
+    int id_de_mi_buzon = buzones_nodos[mi_id_receptor];
+    sem_post(&sem_buzones_nodos);
 
     while(true){
 
         //RECIBIMOS PETICIÓN
-        sem_wait(&sem_buzones_nodos);
-        if(msgrcv(buzones_nodos[mi_id], &msg_peticion, sizeof(msg_peticion), 0, 0) == -1){
-            sem_post(&sem_buzones_nodos);
-            printf("ERROR: Hubo un error al recibir un mensaje con el hilo.\n");
+        if(msgrcv(id_de_mi_buzon, &msg_peticion, sizeof(msg_peticion), 0, 0) == -1){
+            printf("ERROR: Hubo un error al recibir un mensaje en el RECEPTOR.\n");
         }
-        sem_post(&sem_buzones_nodos);
-
+        printf("He recibido un mensaje del nodo: %d\n", msg_peticion.id);
         //ACTUALIZO EL VALOR DE PETICIONES CON LA QUE ME ACABA DE LLEGAR
         sem_wait(&sem_peticiones);
-        peticiones[msg_peticion.id] = max(peticiones[msg_peticion.id], msg_peticion.peticion);
+        peticiones[msg_peticion.id - 1] = max(peticiones[msg_peticion.id - 1], msg_peticion.peticion);
+        printf("\n");
+        sem_post(&sem_peticiones);
 
         //SI TENGO EL TESTIGO Y NO ESTOY EN LA S.C. LE ENVÍO EL TESTIGO AL SIGUIENTE NODO
         sem_wait(&sem_testigo);
         sem_wait(&sem_dentro);
+        sem_wait(&sem_peticiones);
         sem_wait(&sem_atendidas);
-        if(testigo && !dentro && (peticiones[msg_peticion.id] > atendidas[msg_peticion.id])){
+        if(testigo && !dentro && (peticiones[msg_peticion.id - 1] > atendidas[msg_peticion.id -1])){
             sem_post(&sem_peticiones);
             sem_post(&sem_atendidas);
             sem_post(&sem_testigo);
             sem_post(&sem_dentro);
             //ENVIAMOS EL TESTIGO
+            printf("PREPARANDO ENVIO\n");
             send_testigo();
+        }else{
+            sem_post(&sem_peticiones);
+            sem_post(&sem_atendidas);
+            sem_post(&sem_testigo);
+            sem_post(&sem_dentro);
         }
-        sem_post(&sem_peticiones);
-        sem_post(&sem_atendidas);
-        sem_post(&sem_testigo);
-        sem_post(&sem_dentro);
 
     }
 
@@ -228,31 +232,43 @@ void *receptor(void *n){
 void send_testigo(){
 
     int i = 0;
+    sem_wait(&sem_mi_id);
     int id_buscar = mi_id;
+    int yo = mi_id;
+    sem_post(&sem_mi_id);
     bool encontrado = false;
     struct msgbuf_testigo msg_testigo;
+    if(id_buscar + i + 1 > N){
+            id_buscar = 1;
+    }else{
+        
+        id_buscar++;
+    }
 
     //COMPROBACIÓN DE SI HAY ALGUIEN ESPERANDO
     for(i; i < N; i++){
 
         //ANILLO LÓGICO
-        sem_wait(&sem_mi_id);
-        if(mi_id + i + 1 == N){
-            sem_post(&sem_mi_id);
-            id_buscar = 0;
-        }else{
-            sem_post(&sem_mi_id);
-            id_buscar = mi_id + i + 1;
+        if(id_buscar > N){
+            id_buscar = 1;
         }
+        if(id_buscar != yo){
 
-        //SI HAY MAS PETICIONES QUE ATENDIDAS, ESTÁ ESPERANDO EL TESTIGO
-        sem_wait(&sem_peticiones);
-        if(peticiones[id_buscar] > atendidas[id_buscar]){
-            sem_post(&sem_peticiones);
-            encontrado = true;
-            break;
+            //SI HAY MAS PETICIONES QUE ATENDIDAS, ESTÁ ESPERANDO EL TESTIGO
+            sem_wait(&sem_peticiones);
+            sem_wait(&sem_atendidas);
+            if(peticiones[id_buscar - 1] > atendidas[id_buscar - 1]){
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+                encontrado = true;
+                printf("El id al que le vamos a enviar el testigo es: %d\n", id_buscar);
+                break;
+            }else{
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+            }
         }
-        sem_post(&sem_peticiones);
+        id_buscar++;
     }
 
     if(encontrado){
@@ -269,23 +285,20 @@ void send_testigo(){
         sem_wait(&sem_testigo);
         testigo = false;
         sem_post(&sem_testigo);
-
+        printf("PAQUETE CALIENTE: Lo espera el nodo %ld\n", msg_testigo.id);
         //ENVIANDO TESTIGO
         sem_wait(&sem_buzon_testigo);
         if(msgsnd(buzon_testigo, &msg_testigo, sizeof(msg_testigo), 0)){
-            sem_post(&sem_buzon_testigo);
             printf("\n\n\tERROR: Hubo un error al enviar el testigo.\n");
         }
         sem_post(&sem_buzon_testigo);
 
-        printf("\n\t TESTIGO ENVIADO\n");
+        printf("\n\t\t TESTIGO ENVIADO\n");
     }
 
 }
 
 int max(int n1, int n2){
-
-  printf("vector peticiones: %i, mensaje: %i\n", n1, n2);
   if(n1 > n2) return n1;
   else return n2;
 }
