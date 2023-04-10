@@ -8,8 +8,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define N 5
-#define P 5
+#define N 5 // --> nodos
+#define P 5 // --> procesos
 #define MAX_ESPERA 20
 
 struct msgbuf_solicitud{
@@ -55,8 +55,9 @@ int max(int n1, int n2);
 
 int main(int argc, char *argv[]){
 
-    if (argc < 2){
-        printf("La forma de ejecutar el programa es: %s num_id_nodo\n", argv[0]);
+    if (argc != 2 || atoi(argv[1]) == 0){
+        printf("La forma de ejecutar el programa es: %s id_nodo\n", argv[0]);
+        printf("El id del nodo no puede ser 0, [1, N]\n");
         return -1;
     }
 
