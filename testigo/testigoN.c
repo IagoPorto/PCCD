@@ -68,6 +68,7 @@ int main(int argc, char *argv[]){
     if(mi_id == 1){
         testigo = true;
         tengo_que_pedir_testigo = false;
+        permiso_para_S_C_E_M = true;
     }
 
     //INICIALIZACIÓN SEMÁFOROS
@@ -144,7 +145,7 @@ void *proceso(void *n){
     while(1){
 
         //ESPERA ALEATORIA PARA ENTRAR EN LA S.C.E.M
-        printf("Proceso %d: Esperando hasta querer entrar en la S.C.E.M.\n",mi_id_proceso);
+        //printf("Proceso %d: Esperando hasta querer entrar en la S.C.E.M.\n", mi_id_proceso);
         espera_aleatoria = rand()% MAX_ESPERA;
         sleep(espera_aleatoria);
         sem_wait(&sem_contador_procesos);
@@ -162,7 +163,6 @@ void *proceso(void *n){
             sem_post(&sem_mi_peticion);
             solicitud.id = yo;
             solicitud.msg_type = 1;
-            printf("\n\t\tPROCESO %d: EL MENSAJE TIENE ID = %d Y LA PETICIÓN = %d\n", mi_id_proceso, solicitud.id, solicitud.peticion);
             //ENVIO PETICIONES
             for(i = 0; i < N; i++){
                 
@@ -186,7 +186,6 @@ void *proceso(void *n){
                     }
                 }
             }
-            printf("Proceso %d: Espero sentadito. \n", mi_id_proceso);
             //Espero sentadito
             sem_wait(&sem_contador_espera);
             contador_espera++;
@@ -207,7 +206,6 @@ void *proceso(void *n){
             sem_wait(&sem_permiso_para_S_C_E_M);
             if(!permiso_para_S_C_E_M){
                 sem_post(&sem_permiso_para_S_C_E_M);
-                printf("Proceso %d: Espero sentadito. \n", mi_id_proceso);
                 //Espero sentadito
                 sem_wait(&sem_contador_espera);
                 contador_espera++;
@@ -229,22 +227,18 @@ void *proceso(void *n){
         sem_wait(&sem_contador_procesos_SC);
         contador_procesos_SC++;
         sem_post(&sem_contador_procesos_SC);
-
-        printf("Proceso %d: Estoy esperando para entrar en la S.C.E.M\n", mi_id_proceso);
         //AQUÍ CONFLUYEN LOS PARGUELAS, CON LOS QUE YA TIENEN EL TESTIGO JUNTO CON EL HÉROE QUE LO CONSIGUIÓ 
         sem_wait(&sem_S_C_E_M);
           /////////////////////////////////////////
          //ENTRAMOS DENTRO DE LA SECCIÓN CRÍTICA//
         /////////////////////////////////////////
-        printf("Proceso %d: \nEs mi TURNO.\n", mi_id_proceso);
         sem_wait(&sem_dentro);
         dentro = true;
         sem_post(&sem_dentro);
-        printf("Proceso %d:\n\t\tESTOY DENTRO DE LA SECCIÓN CRÍTICA\n", mi_id_proceso);
+        printf("Proceso %d:\n\t\tESTOY DENTRO DE LA SECCIÓN CRÍTICA\n\n", mi_id_proceso);
         //estamos el tiempo que nos de la real gana, porque nos hemos ganado el testigo, yeah baby (aunque no un tiempo infinito)
         //espera_aleatoria = rand()% MAX_ESPERA;
-        espera_aleatoria = rand()% MAX_ESPERA;
-        sleep(espera_aleatoria);
+        sleep(3);
         sem_wait(&sem_contador_procesos);
         contador_procesos--;
         sem_post(&sem_contador_procesos);
@@ -258,7 +252,7 @@ void *proceso(void *n){
             sem_post(&sem_contador_procesos_SC);
             //ACTUALIZAMOS VECTOR ANTENDIDAS Y VARIABLE DENTRO
             sem_wait(&sem_atendidas);
-            atendidas[yo - 1] = mi_peticion;
+            atendidas[yo - 1] = atendidas[yo - 1] + 1;
             sem_post(&sem_atendidas);
 
             sem_wait(&sem_dentro);
@@ -278,6 +272,7 @@ void *receptor(void *n){
 
     struct msgbuf_mensaje mensaje_rx;
     int i;
+    bool quedan_solicitudes_sin_atender = false;
     sem_wait(&sem_mi_id);
     int mi_id_receptor = mi_id - 1;
     sem_post(&sem_mi_id);
@@ -335,20 +330,32 @@ void *receptor(void *n){
         }else{//El mensaje es el testigo
             printf("Proceso RX: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
             sem_post(&sem_espera_procesos);
-            sem_wait(&sem_tengo_que_pedir_testigo);
-            tengo_que_pedir_testigo = false;
-            sem_post(&sem_tengo_que_pedir_testigo);
+            for(i = 0; i < N; i++){
+                sem_wait(&sem_atendidas);
+                atendidas[i] = mensaje_rx.atendidas[i];
+                sem_wait(&sem_peticiones);
+                if(atendidas[i] < peticiones[i]){
+                    quedan_solicitudes_sin_atender = true;
+                }
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+
+            }
+            sem_wait(&sem_tengo_que_pedir_testigo);         
             sem_wait(&sem_permiso_para_S_C_E_M);
-            permiso_para_S_C_E_M = true;
+            if(quedan_solicitudes_sin_atender){
+                permiso_para_S_C_E_M = false;
+                tengo_que_pedir_testigo = true;
+            }else{
+                permiso_para_S_C_E_M = true;
+                tengo_que_pedir_testigo = false;
+            }
+            sem_post(&sem_tengo_que_pedir_testigo);
             sem_post(&sem_permiso_para_S_C_E_M);
             sem_wait(&sem_testigo);
             testigo = true;
             sem_post(&sem_testigo);
-            for(i = 0; i < N; i++){
-                sem_wait(&sem_atendidas);
-                atendidas[i] = mensaje_rx.atendidas[i];
-                sem_post(&sem_atendidas);
-            }
+            
         }
 
     }
