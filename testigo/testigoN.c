@@ -11,6 +11,7 @@
 #define N 5 // --> nodos
 #define P 5 // --> procesos
 #define MAX_ESPERA 10
+#define SLEEP 3
 
 struct msgbuf_mensaje{
   long msg_type;
@@ -21,7 +22,6 @@ struct msgbuf_mensaje{
 
 //VARIABLES GLOBALES
 bool testigo = false;
-bool dentro = false;
 bool permiso_para_S_C_E_M = false;
 bool tengo_que_pedir_testigo = true;
 int mi_id;
@@ -29,7 +29,7 @@ int atendidas[N] = {}, peticiones[N] = {};
 int buzones_nodos[N];
 
 //SEMÁFOROS GLOBALES
-sem_t sem_testigo, sem_dentro, sem_mi_id, sem_atendidas, sem_buzones_nodos,
+sem_t sem_testigo, sem_mi_id, sem_atendidas, sem_buzones_nodos,
       sem_peticiones, sem_tengo_que_pedir_testigo, sem_permiso_para_S_C_E_M;
 
 //VARIABLES PROCESOS
@@ -73,7 +73,6 @@ int main(int argc, char *argv[]){
 
     //INICIALIZACIÓN SEMÁFOROS
     sem_init(&sem_testigo, 0, 1);
-    sem_init(&sem_dentro, 0, 1);
     sem_init(&sem_mi_id, 0, 1);
     sem_init(&sem_atendidas, 0, 1);
     sem_init(&sem_peticiones, 0, 1);
@@ -232,13 +231,10 @@ void *proceso(void *n){
           /////////////////////////////////////////
          //ENTRAMOS DENTRO DE LA SECCIÓN CRÍTICA//
         /////////////////////////////////////////
-        sem_wait(&sem_dentro);
-        dentro = true;
-        sem_post(&sem_dentro);
         printf("Proceso %d:\n\t\tESTOY DENTRO DE LA SECCIÓN CRÍTICA\n\n", mi_id_proceso);
         //estamos el tiempo que nos de la real gana, porque nos hemos ganado el testigo, yeah baby (aunque no un tiempo infinito)
         //espera_aleatoria = rand()% MAX_ESPERA;
-        sleep(3);
+        sleep(SLEEP);
         sem_wait(&sem_contador_procesos);
         contador_procesos--;
         sem_post(&sem_contador_procesos);
@@ -254,10 +250,6 @@ void *proceso(void *n){
             sem_wait(&sem_atendidas);
             atendidas[yo - 1] = atendidas[yo - 1] + 1;
             sem_post(&sem_atendidas);
-
-            sem_wait(&sem_dentro);
-            dentro = false;
-            sem_post(&sem_dentro);
 
             //ENVIAMOS EL TESTIGO
             send_testigo();
@@ -297,14 +289,14 @@ void *receptor(void *n){
 
             //SI TENGO EL TESTIGO Y NO ESTOY EN LA S.C. LE ENVÍO EL TESTIGO AL SIGUIENTE NODO
             sem_wait(&sem_testigo);
-            sem_wait(&sem_dentro);
+            sem_wait(&sem_contador_procesos_SC);
             sem_wait(&sem_peticiones);
             sem_wait(&sem_atendidas);
-            if(testigo && !dentro && (peticiones[mensaje_rx.id - 1] > atendidas[mensaje_rx.id -1])){
+            if(testigo && !(contador_procesos_SC > 0) && (peticiones[mensaje_rx.id - 1] > atendidas[mensaje_rx.id -1])){
                 sem_post(&sem_peticiones);
                 sem_post(&sem_atendidas);
                 sem_post(&sem_testigo);
-                sem_post(&sem_dentro);
+                sem_post(&sem_contador_procesos_SC);
                 //ENVIAMOS EL TESTIGO
                 printf("Proceso RX: PREPARANDO ENVIO\n");
                 send_testigo();
@@ -312,7 +304,7 @@ void *receptor(void *n){
                 sem_post(&sem_peticiones);
                 sem_post(&sem_atendidas);
                 sem_post(&sem_testigo);
-                sem_post(&sem_dentro);
+                sem_post(&sem_contador_procesos_SC);
             }
             sem_wait(&sem_testigo);
             if(testigo){
