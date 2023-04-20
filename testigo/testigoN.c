@@ -8,40 +8,40 @@
 #include <time.h>
 #include <unistd.h>
 
-#define N 5
-#define P 5
-#define MAX_ESPERA 20
+#define N 5 // --> nodos
+#define P 5 // --> procesos
+#define MAX_ESPERA 10
+#define SLEEP 3
 
-struct msgbuf_solicitud{
+struct msgbuf_mensaje{
+  long msg_type;
   int id;
   int peticion;
-};
-struct msgbuf_testigo{
-  long id;
   int atendidas[N];
 };
 
 //VARIABLES GLOBALES
 bool testigo = false;
-bool dentro = false;
+bool permiso_para_S_C_E_M = false;
+bool tengo_que_pedir_testigo = true;
 int mi_id;
 int atendidas[N] = {}, peticiones[N] = {};
 int buzones_nodos[N];
-int buzon_testigo;
 
 //SEMÁFOROS GLOBALES
-sem_t sem_testigo, sem_dentro, sem_mi_id, sem_atendidas, 
-      sem_peticiones, sem_buzones_nodos, sem_buzon_testigo;
+sem_t sem_testigo, sem_mi_id, sem_atendidas, sem_buzones_nodos,
+      sem_peticiones, sem_tengo_que_pedir_testigo, sem_permiso_para_S_C_E_M;
 
 //VARIABLES PROCESOS
 int mi_peticion = 0;
-struct msgbuf_testigo msg_testigo;
-struct msgbuf_solicitud msg_solicitud;
+struct msgbuf_mensaje solicitud;
 int contador_procesos = 0, contador_espera = 0;
+int contador_procesos_SC = 0;
 
 //SEMÁFOROS PROCESOS
-sem_t sem_mi_peticion, sem_msg_testigo, sem_msg_solicitud,
-        sem_espera_procesos, sem_contador_procesos, sem_contador_espera;
+sem_t sem_mi_peticion, sem_espera_procesos, 
+        sem_contador_procesos, sem_contador_espera,
+        sem_contador_procesos_SC;
 
 sem_t sem_S_C_E_M;
 
@@ -55,34 +55,35 @@ int max(int n1, int n2);
 
 int main(int argc, char *argv[]){
 
-    if (argc < 2){
-        printf("La forma de ejecutar el programa es: %s num_id_nodo\n", argv[0]);
+    if (argc != 2 || atoi(argv[1]) == 0){
+        printf("La forma de ejecutar el programa es: %s id_nodo\n", argv[0]);
+        printf("El id del nodo no puede ser 0, [1, N]\n");
         return -1;
     }
 
     int i = 0;
     mi_id = atoi(argv[1]);
-    msg_solicitud.id = mi_id;
 
     //INICIALIZACIÓN TESTIGO
     if(mi_id == 1){
         testigo = true;
+        tengo_que_pedir_testigo = false;
+        permiso_para_S_C_E_M = true;
     }
 
     //INICIALIZACIÓN SEMÁFOROS
     sem_init(&sem_testigo, 0, 1);
-    sem_init(&sem_dentro, 0, 1);
     sem_init(&sem_mi_id, 0, 1);
     sem_init(&sem_atendidas, 0, 1);
     sem_init(&sem_peticiones, 0, 1);
-    sem_init(&sem_buzones_nodos, 0, 1);
-    sem_init(&sem_buzon_testigo, 0, 1);
 
     sem_init(&sem_mi_peticion, 0, 1);
-    sem_init(&sem_msg_testigo, 0, 1);//No es seguro
-    //sem_init(&sem_msg_solicitud, 0, 1);//No es seguro
     sem_init(&sem_contador_procesos, 0, 1);
+    sem_init(&sem_contador_procesos_SC, 0, 1);
     sem_init(&sem_contador_espera, 0, 1);
+    sem_init(&sem_buzones_nodos, 0, 1);
+    sem_init(&sem_tengo_que_pedir_testigo, 0, 1);
+    sem_init(&sem_permiso_para_S_C_E_M, 0, 1);
 
     sem_init(&sem_espera_procesos, 0, 0);
 
@@ -98,14 +99,6 @@ int main(int argc, char *argv[]){
 
             perror("No se creó el mensaje\n");
         }
-    }
-
-    //INICIALIZACIÓN BUZÓN TESTIGO
-    buzon_testigo = msgget(N + 1, IPC_CREAT | 0777);
-    printf("La cola del TESTIGO tiene id: %i.\n", buzon_testigo);
-
-    if(buzon_testigo == -1){
-        perror("No se creó el mensaje\n");
     }
 
     //INICIALIZACIÓN HILO RECEPTOR
@@ -151,101 +144,72 @@ void *proceso(void *n){
     while(1){
 
         //ESPERA ALEATORIA PARA ENTRAR EN LA S.C.E.M
-        printf("Proceso %d: Haciendo mis movidas hasta que me de la gana de entrar en la S.C\n",mi_id_proceso);
+        //printf("Proceso %d: Esperando hasta querer entrar en la S.C.E.M.\n", mi_id_proceso);
         espera_aleatoria = rand()% MAX_ESPERA;
         sleep(espera_aleatoria);
-
         sem_wait(&sem_contador_procesos);
         contador_procesos++;
         sem_post(&sem_contador_procesos);
+        sem_wait(&sem_tengo_que_pedir_testigo);
+        if(tengo_que_pedir_testigo){//tengo que pedir el testigo bien por ser el primero bien, porque vamos a tener que enviar el testigo antes de que me toque.
+            tengo_que_pedir_testigo = false;
+            sem_post(&sem_tengo_que_pedir_testigo);
 
-        sem_wait(&sem_testigo);
-        if(!testigo){
+            printf("Proceso %d: Voy a pedir el testigo.\n", mi_id_proceso);
+            sem_wait(&sem_mi_peticion);
+            mi_peticion++;
+            solicitud.peticion = mi_peticion;
+            sem_post(&sem_mi_peticion);
+            solicitud.id = yo;
+            solicitud.msg_type = 1;
+            //ENVIO PETICIONES
+            for(i = 0; i < N; i++){
+                
+                if(yo - 1 == i){
+                    continue;
 
-            sem_post(&sem_testigo);
+                }else{
 
-            sem_wait(&sem_contador_procesos);
-            if(contador_procesos == 1){
+                    sem_wait(&sem_buzones_nodos);
+                    //sem_wait(&sem_msg_solicitud);
 
-                sem_post(&sem_contador_procesos);
-                printf("Proceso %d: Voy a pedir el testigo.\n", mi_id_proceso);
-                sem_wait(&sem_mi_peticion);
-                mi_peticion++;
-                //sem_wait(&sem_msg_solicitud);
-                msg_solicitud.peticion = mi_peticion;
-                msg_solicitud.id = yo;
-                sem_post(&sem_mi_peticion);
-                //sem_post(&sem_msg_solicitud);
-                printf("\n\t\tPROCESO %d: EL MENSAJE TIENE ID = %d Y LA PETICIÓN = %d\n", mi_id_proceso, msg_solicitud.id, msg_solicitud.peticion);
-                //ENVIO PETICIONES
-                for(i = 0; i < N; i++){
-                    
-                    if(yo - 1 == i){
+                    if(msgsnd(buzones_nodos[i], &solicitud, sizeof(solicitud), 0) == -1){
 
-                        printf("Proceso %d: No me voy a enviar un mensaje a mi mismo\n", mi_id_proceso);
-                        continue;
-
+                        //sem_post(&sem_msg_solicitud);
+                        sem_post(&sem_buzones_nodos);
+                        printf("Proceso %d:\n\tERROR: Hubo un error enviando el mensaje al nodo: %i.\n",mi_id_proceso, i);
                     }else{
 
-                        printf("Proceso %d: Enviando solicitud al nodo: %d\n", mi_id_proceso, i + 1);
-                        sem_wait(&sem_buzones_nodos);
-                        //sem_wait(&sem_msg_solicitud);
-
-                        if(msgsnd(buzones_nodos[i], &msg_solicitud, sizeof(msg_solicitud), 0) == -1){
-
-                            //sem_post(&sem_msg_solicitud);
-                            sem_post(&sem_buzones_nodos);
-                            printf("Proceso %d:\n\tERROR: Hubo un error enviando el mensaje al nodo: %i.\n",mi_id_proceso, i);
-                        }else{
-
-                            //sem_post(&sem_msg_solicitud);
-                            sem_post(&sem_buzones_nodos);
-                            printf("Proceso %d: Mensaje enviado con EXITO. \n", mi_id_proceso);
-                        }
+                        //sem_post(&sem_msg_solicitud);
+                        sem_post(&sem_buzones_nodos);
                     }
                 }
+            }
+            //Espero sentadito
+            sem_wait(&sem_contador_espera);
+            contador_espera++;
+            sem_post(&sem_contador_espera);
+            sem_wait(&sem_espera_procesos);
+            sem_wait(&sem_contador_espera);
+            contador_espera--;
+            if(contador_espera > 0){
+                sem_post(&sem_contador_espera);
+                sem_post(&sem_espera_procesos);
+            }else{
+                sem_post(&sem_contador_espera);
+            }
 
-                //RECIBIMOS EL TESTIGO
-                sem_wait(&sem_buzon_testigo);
-                if(msgrcv(buzon_testigo, &msg_testigo, sizeof(msg_testigo), yo, 0) == -1){
+        }else{
+            sem_post(&sem_tengo_que_pedir_testigo);
 
-                    sem_post(&sem_buzon_testigo);
-                    printf("Proceso %d: \n\n\tERROR: Hubo un error al recibir el testigo\n", mi_id_proceso);
-                }
-                sem_post(&sem_buzon_testigo);
-
-                sem_wait(&sem_testigo);
-                testigo = true;
-                sem_post(&sem_testigo);
-                printf("Proceso %d: He recibido el testigo.\n", mi_id_proceso);
-
-                //SI HAY PARGUELAS ESPERANDO LE DOY PASO A UNO
-                sem_wait(&sem_contador_espera);
-                if(contador_espera > 0){
-                    sem_post(&sem_contador_espera);
-                    sem_post(&sem_espera_procesos);
-                }else{
-                    sem_post(&sem_contador_espera);
-                }
-
-                //ACTUALIZAMOS VECTOR ATENDIDAS
-                for(i = 0; i < N; i++){
-                    sem_wait(&sem_atendidas);
-                    atendidas[i] = msg_testigo.atendidas[i];
-                    sem_post(&sem_atendidas);
-                }
-
-            }else{//Si no soy el primero y no tenemos el testigo, espero como un parguela.
-
-                printf("Proceso %d: Soy un parguelita, me toca esperar\n", mi_id_proceso);
-                sem_post(&sem_contador_procesos);
+            sem_wait(&sem_permiso_para_S_C_E_M);
+            if(!permiso_para_S_C_E_M){
+                sem_post(&sem_permiso_para_S_C_E_M);
+                //Espero sentadito
                 sem_wait(&sem_contador_espera);
                 contador_espera++;
                 sem_post(&sem_contador_espera);
-
-                //AQUÍ ESPERAN COMO PARGUELAS
                 sem_wait(&sem_espera_procesos);
-                //AQUÍ DEJAN DE SER PARGUELAS
                 sem_wait(&sem_contador_espera);
                 contador_espera--;
                 if(contador_espera > 0){
@@ -254,57 +218,53 @@ void *proceso(void *n){
                 }else{
                     sem_post(&sem_contador_espera);
                 }
+            }else{
+                sem_post(&sem_permiso_para_S_C_E_M);
             }
-
-        }else{
-            sem_post(&sem_testigo);
-            
         }
-        printf("Proceso %d: Estoy esperando para entrar en la S.C.E.M\n", mi_id_proceso);
+
+        sem_wait(&sem_contador_procesos_SC);
+        contador_procesos_SC++;
+        sem_post(&sem_contador_procesos_SC);
         //AQUÍ CONFLUYEN LOS PARGUELAS, CON LOS QUE YA TIENEN EL TESTIGO JUNTO CON EL HÉROE QUE LO CONSIGUIÓ 
         sem_wait(&sem_S_C_E_M);
-
-        //ENTRAMOS DENTRO DE LA SECCIÓN CRÍTICA
-        printf("Proceso %d: \nEs mi TURNO.\n", mi_id_proceso);
-        sem_wait(&sem_dentro);
-        dentro = true;
-        sem_post(&sem_dentro);
-        printf("Proceso %d:\n\t\tESTOY DENTRO DE LA SECCIÓN CRÍTICA\n", mi_id_proceso);
+          /////////////////////////////////////////
+         //ENTRAMOS DENTRO DE LA SECCIÓN CRÍTICA//
+        /////////////////////////////////////////
+        printf("Proceso %d:\n\t\tESTOY DENTRO DE LA SECCIÓN CRÍTICA\n\n", mi_id_proceso);
         //estamos el tiempo que nos de la real gana, porque nos hemos ganado el testigo, yeah baby (aunque no un tiempo infinito)
         //espera_aleatoria = rand()% MAX_ESPERA;
-        sleep(1);
-
+        sleep(SLEEP);
         sem_wait(&sem_contador_procesos);
         contador_procesos--;
+        sem_post(&sem_contador_procesos);
 
-        if(contador_procesos == 0){
+        sem_post(&sem_S_C_E_M);
 
+        //Salimos de la SCEM
+        sem_wait(&sem_contador_procesos_SC);
+        contador_procesos_SC--;
+        if(contador_procesos_SC == 0){
+            sem_post(&sem_contador_procesos_SC);
             //ACTUALIZAMOS VECTOR ANTENDIDAS Y VARIABLE DENTRO
             sem_wait(&sem_atendidas);
-            atendidas[yo - 1] = mi_peticion;
+            atendidas[yo - 1] = atendidas[yo - 1] + 1;
             sem_post(&sem_atendidas);
-
-            sem_wait(&sem_dentro);
-            dentro = false;
-            sem_post(&sem_dentro);
 
             //ENVIAMOS EL TESTIGO
             send_testigo();
-            sem_post(&sem_contador_procesos);
-
         }else{
-            sem_post(&sem_contador_procesos);
-            
+            sem_post(&sem_contador_procesos_SC);
         }
-
-        sem_post(&sem_S_C_E_M);
     }
 
 }
 
 void *receptor(void *n){
 
-    struct msgbuf_solicitud msg_peticion;
+    struct msgbuf_mensaje mensaje_rx;
+    int i;
+    bool quedan_solicitudes_sin_atender = false;
     sem_wait(&sem_mi_id);
     int mi_id_receptor = mi_id - 1;
     sem_post(&sem_mi_id);
@@ -315,34 +275,79 @@ void *receptor(void *n){
     while(true){
 
         //RECIBIMOS PETICIÓN
-        if(msgrcv(id_de_mi_buzon, &msg_peticion, sizeof(msg_peticion), 0, 0) == -1){
+        if(msgrcv(id_de_mi_buzon, &mensaje_rx, sizeof(mensaje_rx), 0, 0) == -1){
             printf("Proceso Rx: ERROR: Hubo un error al recibir un mensaje en el RECEPTOR.\n");
         }
-        printf("Proceso Rx: He recibido un mensaje del nodo: %d\n", msg_peticion.id);
+        
         //ACTUALIZO EL VALOR DE PETICIONES CON LA QUE ME ACABA DE LLEGAR
-        sem_wait(&sem_peticiones);
-        peticiones[msg_peticion.id - 1] = max(peticiones[msg_peticion.id - 1], msg_peticion.peticion);
-        printf("\n");
-        sem_post(&sem_peticiones);
+        if(mensaje_rx.msg_type == 1){//EL mensaje es una petición.
+            printf("Proceso RX: He recibido una petición del nodo: %d\n", mensaje_rx.id);
+            sem_wait(&sem_peticiones);
+            peticiones[mensaje_rx.id - 1] = max(peticiones[mensaje_rx.id - 1], mensaje_rx.peticion);
+            sem_post(&sem_peticiones);
+            printf("\n");
 
-        //SI TENGO EL TESTIGO Y NO ESTOY EN LA S.C. LE ENVÍO EL TESTIGO AL SIGUIENTE NODO
-        sem_wait(&sem_testigo);
-        sem_wait(&sem_dentro);
-        sem_wait(&sem_peticiones);
-        sem_wait(&sem_atendidas);
-        if(testigo && !dentro && (peticiones[msg_peticion.id - 1] > atendidas[msg_peticion.id -1])){
-            sem_post(&sem_peticiones);
-            sem_post(&sem_atendidas);
+            //SI TENGO EL TESTIGO Y NO ESTOY EN LA S.C. LE ENVÍO EL TESTIGO AL SIGUIENTE NODO
+            sem_wait(&sem_testigo);
+            sem_wait(&sem_contador_procesos_SC);
+            sem_wait(&sem_peticiones);
+            sem_wait(&sem_atendidas);
+            if(testigo && !(contador_procesos_SC > 0) && (peticiones[mensaje_rx.id - 1] > atendidas[mensaje_rx.id -1])){
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+                sem_post(&sem_testigo);
+                sem_post(&sem_contador_procesos_SC);
+                //ENVIAMOS EL TESTIGO
+                printf("Proceso RX: PREPARANDO ENVIO\n");
+                send_testigo();
+            }else{
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+                sem_post(&sem_testigo);
+                sem_post(&sem_contador_procesos_SC);
+            }
+            sem_wait(&sem_testigo);
+            if(testigo){
+                sem_post(&sem_testigo);
+                sem_wait(&sem_tengo_que_pedir_testigo);
+                tengo_que_pedir_testigo = true;
+                sem_post(&sem_tengo_que_pedir_testigo);
+                sem_wait(&sem_permiso_para_S_C_E_M);
+                permiso_para_S_C_E_M = false;
+                sem_post(&sem_permiso_para_S_C_E_M);
+            }else{
+                sem_post(&sem_testigo);
+            }
+
+        }else{//El mensaje es el testigo
+            printf("Proceso RX: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
+            sem_post(&sem_espera_procesos);
+            for(i = 0; i < N; i++){
+                sem_wait(&sem_atendidas);
+                atendidas[i] = mensaje_rx.atendidas[i];
+                sem_wait(&sem_peticiones);
+                if(atendidas[i] < peticiones[i]){
+                    quedan_solicitudes_sin_atender = true;
+                }
+                sem_post(&sem_peticiones);
+                sem_post(&sem_atendidas);
+
+            }
+            sem_wait(&sem_tengo_que_pedir_testigo);         
+            sem_wait(&sem_permiso_para_S_C_E_M);
+            if(quedan_solicitudes_sin_atender){
+                permiso_para_S_C_E_M = false;
+                tengo_que_pedir_testigo = true;
+            }else{
+                permiso_para_S_C_E_M = true;
+                tengo_que_pedir_testigo = false;
+            }
+            sem_post(&sem_tengo_que_pedir_testigo);
+            sem_post(&sem_permiso_para_S_C_E_M);
+            sem_wait(&sem_testigo);
+            testigo = true;
             sem_post(&sem_testigo);
-            sem_post(&sem_dentro);
-            //ENVIAMOS EL TESTIGO
-            printf("Proceso Rx: PREPARANDO ENVIO\n");
-            send_testigo();
-        }else{
-            sem_post(&sem_peticiones);
-            sem_post(&sem_atendidas);
-            sem_post(&sem_testigo);
-            sem_post(&sem_dentro);
+            
         }
 
     }
@@ -357,7 +362,9 @@ void send_testigo(){
     int yo = mi_id;
     sem_post(&sem_mi_id);
     bool encontrado = false;
-    struct msgbuf_testigo msg_testigo;
+    struct msgbuf_mensaje msg_testigo;
+    msg_testigo.msg_type = 2;
+    msg_testigo.id = yo;
     if(id_buscar + i + 1 > N){
             id_buscar = 1;
     }else{
@@ -381,7 +388,7 @@ void send_testigo(){
                 sem_post(&sem_peticiones);
                 sem_post(&sem_atendidas);
                 encontrado = true;
-                printf("Proceso envio: El id al que le vamos a enviar el testigo es: %d\n", id_buscar);
+                printf("PROCESO ENVIO: El id al que le vamos a enviar el testigo es: %d\n", id_buscar);
                 break;
             }else{
                 sem_post(&sem_peticiones);
@@ -405,15 +412,14 @@ void send_testigo(){
         sem_wait(&sem_testigo);
         testigo = false;
         sem_post(&sem_testigo);
-        printf("Proceso envio: PAQUETE CALIENTE: Lo espera el nodo %ld\n", msg_testigo.id);
         //ENVIANDO TESTIGO
-        sem_wait(&sem_buzon_testigo);
-        if(msgsnd(buzon_testigo, &msg_testigo, sizeof(msg_testigo), 0)){
-            printf("Proceso envio: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+        sem_wait(&sem_buzones_nodos);
+        if(msgsnd(buzones_nodos[id_buscar - 1], &msg_testigo, sizeof(msg_testigo), 0)){
+            printf("PROCESO ENVIO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
         }
-        sem_post(&sem_buzon_testigo);
+        sem_post(&sem_buzones_nodos);
 
-        printf("Proceso envio: \n\t\t TESTIGO ENVIADO\n");
+        printf("PROCESO ENVIO: \n\t\t TESTIGO ENVIADO\n");
     }
 
 }

@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <math.h>
 #include <time.h>
-#define nodos 3
+#define nodos 5
 
 typedef struct
 {
@@ -22,7 +22,6 @@ int quero_sc=0;
 int miID,  pendentes=0; 
 int colaNodos [nodos-1];
 sem_t xenericoSC;
-sem_t sem_quero_sc;
 
 float max(float n1, float n2){
     if(n1>n2 || n1==n2){
@@ -64,26 +63,17 @@ while (1) {
      printf("Recibin todos os permisos\n");
     }
 
-    sem_wait(&sem_quero_sc);
-  //  else if(quero_sc==1 && (permisos < nodos-1)){  // && permisos > 0)){
-    if(quero_sc==1 && (permisos < nodos-1)){  // && permisos > 0)){
-
-    sem_post(&sem_quero_sc);
-
-    printf("[DEBUG] Quero_sc= %i  // permisos = %i\n",quero_sc,permisos);
-    colaNodos[pendentes] = ticketIN.id_orixe;
-   // colaNodos[ticketIN.id_orixe]=pendentes;
-    pendentes++;
-    //rematar
+    else if(quero_sc==1 && (permisos < nodos-1)){  // && permisos > 0)){
+        printf("[DEBUG] Quero_sc= %i  // permisos = %i\n",quero_sc,permisos);
+        colaNodos[pendentes] = ticketIN.id_orixe;
+        // colaNodos[ticketIN.id_orixe]=pendentes;
+        pendentes++;
+        //rematar
     }
 
 
             //semaforo para quero_sc?
-    sem_wait(&sem_quero_sc);
-  //  else if(quero_sc==0 || valorTicket >ticketIN.valor || (valorTicket >ticketIN.valor && miID>ticketIN.id_orixe)){ //se meu ticket e mais grande que un que me chegou, deixo que entre
-    if(quero_sc==0 || valorTicket >ticketIN.valor || (valorTicket >ticketIN.valor && miID>ticketIN.id_orixe)){ //se meu ticket e mais grande que un que me chegou, deixo que entre
-
-    sem_post(&sem_quero_sc);
+  else if(quero_sc==0 || valorTicket >ticketIN.valor || (valorTicket >ticketIN.valor && miID>ticketIN.id_orixe)){ //se meu ticket e mais grande que un que me chegou, deixo que entre
 
     //semaforo para minTicket?
     minTicket=max(minTicket,ticketIN.valor);
@@ -115,7 +105,11 @@ int main(int argc,char* argv[]){
     int direccion_nodos[nodos-1];
 
     //key_t key = ftok("/home/pedro/Teleco/PCCD/grupoc",atoi(argv[1]));
+<<<<<<< HEAD:tickets.c
     key_t key = ftok("/Users/laura/Desktop/teleco/cuarto/2ºcuatri/pccd/testigo",atoi(argv[1]));
+=======
+    key_t key = ftok("/home/iago/Downloads",atoi(argv[1]));
+>>>>>>> origin/main:tickets/SCtickets.c
 
     miID=msgget(key, IPC_CREAT | 0777);
     printf("Mi ID é: %i\n",miID);
@@ -127,11 +121,6 @@ int main(int argc,char* argv[]){
 
     //inicializo semaforos
     int erro = sem_init(&xenericoSC,0,0);
-    if(erro==-1){
-        printf("Erro o crear o semaforo xenerico\n");
-        return 0; 
-    }
-    erro = sem_init(&sem_quero_sc,0,1);
     if(erro==-1){
         printf("Erro o crear o semaforo xenerico\n");
         return 0; 
@@ -163,10 +152,7 @@ int main(int argc,char* argv[]){
         valorTicket=minTicket+(float)((rand()% 1000)/1000.0f);
 
         //semaforo sc
-        sem_wait(&sem_quero_sc);
         quero_sc = 1;
-        sem_post(&sem_quero_sc);
-
 
         ticketOUT.valor=valorTicket;
         ticketOUT.id_orixe=miID;
@@ -191,7 +177,7 @@ int main(int argc,char* argv[]){
 
         sem_wait(&xenericoSC);  //o post esta no fio receptor
         printf("ENTRO EN SECCIÓN CRITICA\n");
-        sleep(2);
+        sleep(5);
         printf("SAIO EN SECCIÓN CRITICA\n");
 
         ticketOUT.id_orixe=miID;
@@ -199,9 +185,7 @@ int main(int argc,char* argv[]){
         printf("[DEBUG] Pendentes despois de SC = %i\n", pendentes);
         printf("[DEBUG] Cola despois de SC = %i\n", colaNodos[0]);
 
-        sem_wait(&sem_quero_sc);
         quero_sc=0;
-        sem_post(&sem_quero_sc);
 
         for(i=0; i < pendentes;i++){
 
