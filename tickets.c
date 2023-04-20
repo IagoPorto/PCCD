@@ -115,7 +115,7 @@ int main(int argc,char* argv[]){
     int direccion_nodos[nodos-1];
 
     //key_t key = ftok("/home/pedro/Teleco/PCCD/grupoc",atoi(argv[1]));
-    key_t key = ftok("/home/kali/tickets PCCD",atoi(argv[1]));
+    key_t key = ftok("/Users/laura/Desktop/teleco/cuarto/2ºcuatri/pccd/testigo",atoi(argv[1]));
 
     miID=msgget(key, IPC_CREAT | 0777);
     printf("Mi ID é: %i\n",miID);
