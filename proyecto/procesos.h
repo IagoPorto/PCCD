@@ -30,7 +30,7 @@ struct msgbuf_mensaje
   int atendidas[N][2];
 };
 
-typedef struct
+typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
 {
   // VARIABLES GLOBALES
   bool testigo;
