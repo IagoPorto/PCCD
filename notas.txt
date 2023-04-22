@@ -1,1 +1,4 @@
 ipcs -q
+ipcrm -q idbuzon
+ipcs -m
+ipcrm -m idmemoria
