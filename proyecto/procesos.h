@@ -17,9 +17,11 @@
 #define MAX_ESPERA 10
 #define SLEEP 3
 
-#define PAGOS_ANUL 1
+#define PAGOS_ANUL 3
 #define ADMIN_RESER 2
-#define CONSULTAS 3
+#define CONSULTAS 1
+
+#define EVITAR_RETECION_EM 10 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
 
 #define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
 #define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
@@ -29,10 +31,11 @@
 struct msgbuf_mensaje
 {
 
-  long msg_type; // TIPO 1 --> SOLICITUD      //TIPO 2 --> TESTIGO
+  long msg_type; // TIPO 1 --> SOLICITUD      //TIPO 2 --> TESTIGO    //TIPO 3 --> TESTIGO CONSULTAS??????
   int id;
   int peticion;
   int prioridad;
+  int testigo_en_juego; //???????
   int atendidas[N][2];
 };
 
@@ -47,26 +50,28 @@ typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   bool tengo_que_enviar_testigo;
   int atendidas[N][2], peticiones[N][2];
   int buzones_nodos[N];
+  int prioridad_maxima;
 
   // SEMÁFOROS GLOBALES
   sem_t sem_testigo, sem_atendidas, sem_buzones_nodos, sem_mi_peticion,
       sem_peticiones, sem_tengo_que_pedir_testigo, sem_permiso_para_SCEM_anulpagos,
-      sem_permiso_para_SCEM_resadmin, sem_permiso_para_SCEM_cons, sem_tengo_que_enviar_testigo;
+      sem_permiso_para_SCEM_resadmin, sem_permiso_para_SCEM_cons, sem_tengo_que_enviar_testigo,
+      sem_prioridad_maxima;
 
   // VARIABLES PROCESOS
   int mi_peticion;
   int contador_anul_pagos_pendientes, contador_reservas_admin_pendientes, contador_consultas_pendientes;
-  int contador_procesos_SC;
+  int contador_procesos_SC, contador_procesos_max_SC; // contador_procesos_max_SC sirve para evitar la retencion de exclusión mutua.
 
   // SEMÁFOROS PROCESOS
-  sem_t sem_contador_procesos_SC;
+  sem_t sem_contador_procesos_SC, sem_contador_procesos_max_SC;
   sem_t sem_contador_anul_pagos_pendientes, sem_contador_reservas_admin_pendientes, sem_contador_consultas_pendientes;
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 
   sem_t sem_SCEM; // semáforo exclusión mutua para todos los procesos de tipo escritor
 } memoria;
 
-void send_testigo(int id)
+void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
 {
 
   int i = 0;

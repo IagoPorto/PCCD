@@ -33,8 +33,10 @@ int main(int argc, char *argv[])
 #ifdef __PRINT_PROCESO
             printf("PAGOS --> Tengo que pedir el testigo");
 #endif
-            struct msgbuf_mensaje solicitud;
+
+            me->tengo_que_pedir_testigo = false;
             sem_post(&(me->sem_tengo_que_pedir_testigo));
+            struct msgbuf_mensaje solicitud;
             sem_wait(&(me->sem_mi_peticion));
             me->mi_peticion++;
             solicitud.peticion = me->mi_peticion;
