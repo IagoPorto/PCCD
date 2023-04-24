@@ -19,6 +19,9 @@ int main(int argc, char *argv[])
     // inicialización memoria compartida
     memoria_id = shmget(mi_id, sizeof(memoria), 0666 | IPC_CREAT);
     me = shmat(memoria_id, NULL, 0);
+#ifdef __DEBUG
+    printf("El id de la memoria compartida es: %i\n", memoria_id);
+#endif
 
     while (1)
     {
@@ -29,11 +32,12 @@ int main(int argc, char *argv[])
 
         sem_wait(&(me->sem_tengo_que_pedir_testigo));
         sem_wait(&(me->sem_prioridad_maxima));
-        if (me->tengo_que_pedir_testigo || me->prioridad_maxima < PAGOS_ANUL)
+        sem_wait(&(me->sem_testigo));
+        if (me->tengo_que_pedir_testigo || (me->prioridad_maxima < PAGOS_ANUL && !me->testigo))
         { // Rama de pedir testigo
-
+            sem_post(&(me->sem_testigo));
 #ifdef __PRINT_PROCESO
-            printf("PAGOS --> Tengo que pedir el testigo");
+            printf("PAGOS --> Tengo que pedir el testigo\n");
 #endif
             me->prioridad_maxima = PAGOS_ANUL;
             sem_post(&(me->sem_prioridad_maxima));
@@ -96,10 +100,12 @@ int main(int argc, char *argv[])
         }
         else // NO TENGO QUE PEDIR EL TESTIGO
         {
+#ifdef __PRINT_PROCESO
+            printf("PAGOS --> no tengo que pedir el testigo.\n");
+#endif
             sem_post(&(me->sem_tengo_que_pedir_testigo));
             sem_post(&(me->sem_prioridad_maxima));
             sem_wait(&(me->sem_dentro));
-            sem_wait(&(me->sem_testigo));
             if ((me->dentro) || !(me->testigo))
             { // SI HAY ALGUIEN DENTRO Y NO TENGO QUE PEDIR TESTIGO Y NO TENGO EL TESTIGO, ESPERO
 #ifdef __PRINT_PROCESO

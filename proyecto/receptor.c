@@ -19,9 +19,16 @@ int main(int argc, char *argv[])
     // inicialización memoria compartida
     memoria_id = shmget(mi_id, sizeof(memoria), 0666 | IPC_CREAT);
     me = shmat(memoria_id, NULL, 0);
+#ifdef __DEBUG
+    printf("El id de la memoria compartida es: %i\n", memoria_id);
+#endif
+
     // inicialización de variables memoria compartida
     if (mi_id == 1)
     {
+#ifdef __PRINT_RX
+        printf("Soy el nodo 1\n");
+#endif
         me->testigo = true;
         me->tengo_que_pedir_testigo = false;
     }
@@ -45,9 +52,6 @@ int main(int argc, char *argv[])
     sem_init(&(me->sem_reser_admin_pend), 0, 0);
     sem_init(&(me->sem_consult_pend), 0, 0);
     // inicialización semáforos exclusión mutua
-    sem_init(&(me->sem_consult_pend), 0, 1);
-    sem_init(&(me->sem_anul_pagos_pend), 0, 1);
-    sem_init(&(me->sem_reser_admin_pend), 0, 1);
     sem_init(&(me->sem_contador_anul_pagos_pendientes), 0, 1);
     sem_init(&(me->sem_contador_reservas_admin_pendientes), 0, 1);
     sem_init(&(me->sem_contador_consultas_pendientes), 0, 1);
@@ -59,6 +63,25 @@ int main(int argc, char *argv[])
     sem_init(&(me->sem_contador_procesos_max_SC), 0, 1);
     sem_init(&(me->sem_prioridad_max_otro_nodo), 0, 1);
     sem_init(&(me->sem_dentro), 0, 1);
+    sem_init(&(me->sem_atendidas), 0, 1);
+    sem_init(&(me->sem_peticiones), 0, 1);
+    sem_init(&(me->sem_buzones_nodos), 0, 1);
+    // INICIALIZACIÓN DE BUZONES NODOS
+    //  INICIALIZACIÓN BUZONES DE LOS NODOS.
+    for (i = 0; i < N; i++)
+    {
+
+        me->buzones_nodos[i] = msgget(i + 1, IPC_CREAT | 0777);
+#ifdef __DEBUG
+        printf("El id del buzón del nodo %i es: %i.\n", i + 1, me->buzones_nodos[i]);
+#endif
+
+        if (me->buzones_nodos[i] == -1)
+        {
+
+            perror("No se creó el mensaje\n");
+        }
+    }
     // INICIO RX!!!!!!!!!!!!!!!!!
     struct msgbuf_mensaje mensaje_rx;
     sem_wait(&(me->sem_buzones_nodos));
