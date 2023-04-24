@@ -201,7 +201,7 @@ void set_prioridad_max(memoria *me)
 #ifdef __DEBUG
         printf("DEBUG: No hay procesos en mi nodo\n");
 #endif
-        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+        sem_post(&(me->sem_contador_consultas_pendientes));
         sem_wait(&(me->sem_prioridad_maxima));
         me->prioridad_maxima = 0;
         sem_post(&(me->sem_prioridad_maxima));

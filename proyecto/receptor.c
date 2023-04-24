@@ -48,11 +48,11 @@ int main(int argc, char *argv[])
     me->prioridad_maxima = 0;
     // inicialización de semáforos
     // inicialización semáforos de paso.
-    sem_init(&(me->sem_anul_pagos_pend), 0, 0);
+    sem_init(&me->sem_anul_pagos_pend, 0, 0);
     sem_init(&(me->sem_reser_admin_pend), 0, 0);
     sem_init(&(me->sem_consult_pend), 0, 0);
     // inicialización semáforos exclusión mutua
-    sem_init(&(me->sem_contador_anul_pagos_pendientes), 0, 1);
+    sem_init(&me->sem_contador_anul_pagos_pendientes, 0, 1);
     sem_init(&(me->sem_contador_reservas_admin_pendientes), 0, 1);
     sem_init(&(me->sem_contador_consultas_pendientes), 0, 1);
     sem_init(&(me->sem_mi_peticion), 0, 1);

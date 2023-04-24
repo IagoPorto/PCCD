@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     memoria *me;
     int memoria_id;
     // inicialización memoria compartida
-    memoria_id = shmget(mi_id, sizeof(memoria), 0666 | IPC_CREAT);
+    memoria_id = shmget(mi_id, sizeof(memoria), 0);
     me = shmat(memoria_id, NULL, 0);
 #ifdef __DEBUG
     printf("El id de la memoria compartida es: %i\n", memoria_id);
@@ -114,7 +114,13 @@ int main(int argc, char *argv[])
                 sem_wait(&(me->sem_contador_anul_pagos_pendientes));
                 me->contador_anul_pagos_pendientes++;
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                sem_wait(&(me->sem_anul_pagos_pend));
+#ifdef __DEBUG
+                printf("PAGOS --> Me quedo aquí.\n");
+#endif
+                sem_wait(&me->sem_anul_pagos_pend);
+#ifdef __DEBUG
+                printf("PAGOS --> Me voy de aquí.\n");
+#endif
                 sem_wait(&(me->sem_contador_anul_pagos_pendientes));
                 me->contador_anul_pagos_pendientes--;
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
@@ -144,6 +150,9 @@ int main(int argc, char *argv[])
         sem_wait(&(me->sem_tengo_que_enviar_testigo));
         if (me->tengo_que_enviar_testigo)
         { // Prioridad maxima en otro nodo
+#ifdef __PRINT_PROCESO
+            printf("PAGOS --> La prioridad maxima está en otro nodo, tengo que enviar el testigo.\n");
+#endif
             sem_post(&(me->sem_tengo_que_enviar_testigo));
             send_testigo(mi_id);
             sem_wait(&(me->sem_dentro));
@@ -157,34 +166,41 @@ int main(int argc, char *argv[])
             sem_wait(&(me->sem_prioridad_maxima));
             if (me->prioridad_max_otro_nodo < me->prioridad_maxima)
             { // Prioridad maxima en mi nodo
+#ifdef __PRINT_PROCESO
+                printf("PAGOS --> la prioridad maxima está en mi nodo.\n");
+#endif
                 sem_post(&(me->sem_prioridad_maxima));
                 sem_post(&(me->sem_prioridad_max_otro_nodo));
-                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-                if (me->contador_anul_pagos_pendientes > 0) // La prioridad mas alta de mi nodo es pagos_anul
+                sem_wait(&(me->sem_prioridad_maxima));
+#ifdef __DEBUG
+                printf("La prioridad max de mi nodo es %i y PAGOS_ANUL es %i.\n", me->prioridad_maxima, PAGOS_ANUL);
+#endif
+                if (me->prioridad_maxima == PAGOS_ANUL) // La prioridad mas alta de mi nodo es pagos_anul
                 {
-                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                    sem_post(&(me->sem_anul_pagos_pend));
+#ifdef __PRINT_PROCESO
+                    printf("PAGOS --> le doy paso a mi compañero.\n");
+#endif
+                    sem_post(&(me->sem_prioridad_maxima));
+                    sem_post(&me->sem_anul_pagos_pend);
                 }
                 else
                 {
-                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-                    if (me->contador_reservas_admin_pendientes > 0) // La prioridad mas alta de mi nodo es reservas_admin
+                    if (me->prioridad_maxima == ADMIN_RESER) // La prioridad mas alta de mi nodo es reservas_admin
                     {
-                        sem_post(&(me->sem_contador_reservas_admin_pendientes));
-                        sem_post(&(me->sem_reser_admin_pend));
-                        sem_wait(&(me->sem_prioridad_maxima));
-                        me->prioridad_maxima = ADMIN_RESER;
+#ifdef __PRINT_PROCESO
+                        printf("PAGOS --> le doy paso a admin_res.\n");
+#endif
                         sem_post(&(me->sem_prioridad_maxima));
+                        sem_post(&(me->sem_reser_admin_pend));
                         sem_wait(&(me->sem_contador_procesos_max_SC));
                         me->contador_procesos_max_SC = 0;
                         sem_post(&(me->sem_contador_procesos_max_SC));
                     }
                     else // La prioridad mas alta de mi nodo es consultas
                     {
-                        sem_post(&(me->sem_contador_reservas_admin_pendientes));
-                        sem_wait(&(me->sem_prioridad_maxima));
-                        me->prioridad_maxima = CONSULTAS;
+#ifdef __PRINT_PROCESO
+                        printf("PAGOS --> le doy paso a consultas.\n");
+#endif
                         sem_post(&(me->sem_prioridad_maxima));
                         sem_wait(&(me->sem_contador_procesos_max_SC));
                         me->contador_procesos_max_SC = 0;
