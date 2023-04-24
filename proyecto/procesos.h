@@ -43,32 +43,30 @@ typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
 {
   // VARIABLES GLOBALES
   bool testigo;
-  bool permiso_para_SCEM_anulpagos;
-  bool permiso_para_SCEM_resadmin;
-  bool permiso_para_SCEM_cons;
   bool tengo_que_pedir_testigo;
   bool tengo_que_enviar_testigo;
+  bool dentro;
+
   int atendidas[N][2], peticiones[N][2];
   int buzones_nodos[N];
-  int prioridad_maxima;
+
+  int prioridad_maxima, prioridad_max_otro_nodo;
 
   // SEMÁFOROS GLOBALES
   sem_t sem_testigo, sem_atendidas, sem_buzones_nodos, sem_mi_peticion,
-      sem_peticiones, sem_tengo_que_pedir_testigo, sem_permiso_para_SCEM_anulpagos,
-      sem_permiso_para_SCEM_resadmin, sem_permiso_para_SCEM_cons, sem_tengo_que_enviar_testigo,
-      sem_prioridad_maxima;
+      sem_peticiones, sem_tengo_que_pedir_testigo,
+      sem_tengo_que_enviar_testigo, sem_prioridad_maxima,
+      sem_prioridad_max_otro_nodo, sem_dentro;
 
   // VARIABLES PROCESOS
   int mi_peticion;
   int contador_anul_pagos_pendientes, contador_reservas_admin_pendientes, contador_consultas_pendientes;
-  int contador_procesos_SC, contador_procesos_max_SC; // contador_procesos_max_SC sirve para evitar la retencion de exclusión mutua.
+  int contador_procesos_max_SC; // contador_procesos_max_SC sirve para evitar la retencion de exclusión mutua.
 
   // SEMÁFOROS PROCESOS
-  sem_t sem_contador_procesos_SC, sem_contador_procesos_max_SC;
+  sem_t sem_contador_procesos_max_SC;
   sem_t sem_contador_anul_pagos_pendientes, sem_contador_reservas_admin_pendientes, sem_contador_consultas_pendientes;
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
-
-  sem_t sem_SCEM; // semáforo exclusión mutua para todos los procesos de tipo escritor
 } memoria;
 
 void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN

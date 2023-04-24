@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
     sem_init(&(me->sem_consult_pend), 0, 1);
     sem_init(&(me->sem_anul_pagos_pend), 0, 1);
     sem_init(&(me->sem_reser_admin_pend), 0, 1);
-    sem_init(&(me->sem_contador_procesos_SC), 0, 1);
     sem_init(&(me->sem_contador_anul_pagos_pendientes), 0, 1);
     sem_init(&(me->sem_contador_reservas_admin_pendientes), 0, 1);
     sem_init(&(me->sem_contador_consultas_pendientes), 0, 1);
@@ -62,8 +61,7 @@ int main(int argc, char *argv[])
     sem_init(&(me->sem_permiso_para_SCEM_resadmin), 0, 1);
     sem_init(&(me->sem_prioridad_maxima), 0, 1);
     sem_init(&(me->sem_contador_procesos_max_SC), 0, 1);
-
-    sem_init(&(me->sem_SCEM), 0, 1);
+    sem_init(&(me->sem_prioridad_max_otro_nodo), 0, 1);
     // INICIO RX!!!!!!!!!!!!!!!!!
     struct msgbuf_mensaje mensaje_rx;
     int i;
@@ -161,7 +159,7 @@ int main(int argc, char *argv[])
             printf("RECEPTOR: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
 #endif
 
-                        break;
+            break;
         case (long)3:
 #ifdef __PRINT_RX
             printf("RECEPTOR: He recibido el testigo CONSULTAS del nodo: %d\n", mensaje_rx.id);

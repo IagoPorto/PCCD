@@ -27,15 +27,18 @@ int main(int argc, char *argv[])
 #endif
 
         sem_wait(&(me->sem_tengo_que_pedir_testigo));
-        if (me->tengo_que_pedir_testigo)
+        sem_wait(&(me->sem_prioridad_maxima));
+        if (me->tengo_que_pedir_testigo || me->prioridad_maxima < PAGOS_ANUL)
         { // Rama de pedir testigo
 
 #ifdef __PRINT_PROCESO
             printf("PAGOS --> Tengo que pedir el testigo");
 #endif
-
+            me->prioridad_maxima = PAGOS_ANUL;
+            sem_post(&(me->sem_prioridad_maxima));
             me->tengo_que_pedir_testigo = false;
             sem_post(&(me->sem_tengo_que_pedir_testigo));
+
             struct msgbuf_mensaje solicitud;
             sem_wait(&(me->sem_mi_peticion));
             me->mi_peticion++;
@@ -86,82 +89,105 @@ int main(int argc, char *argv[])
             me->contador_anul_pagos_pendientes++;
             sem_post(&(me->sem_contador_anul_pagos_pendientes));
             sem_wait(&(me->sem_anul_pagos_pend));
+            sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+            me->contador_anul_pagos_pendientes--;
+            sem_post(&(me->sem_contador_anul_pagos_pendientes));
         }
         else // NO TENGO QUE PEDIR EL TESTIGO
         {
-            sem_wait(&(me->sem_testigo));
-            if (me->testigo)
-            {
-                sem_post(&(me->sem_testigo));
-
-                ////////////////////////////////////////////////////////////////////
-                ///////////////////////////////////////////////////////////////////
-                ////////////////////////////////////////////////////////////////////
-                // FALTAN COSAS
-                ///////////////////////////////////////////////////7
-                /////////////////////////////////////////////////////////////////
-            }
-            else
-            {
-                sem_post(&(me->sem_testigo));
-            }
             sem_post(&(me->sem_tengo_que_pedir_testigo));
-            sem_wait(&(me->sem_permiso_para_SCEM_anulpagos));
-            if (!(me->permiso_para_SCEM_anulpagos))
+            sem_post(&(me->sem_prioridad_maxima));
+            sem_wait(&(me->sem_dentro));
+            if ((me->dentro))
             { // SI NO TENGO PERMISO Y NO TENGO QUE PEDIR TESTIGO, ESPERO
 #ifdef __PRINT_PROCESO
                 print("PAGOS --> tengo que esperar porque no tengo permiso.\n");
 #endif
-                sem_post(&(me->sem_permiso_para_SCEM_anulpagos));
+                sem_post(&(me->sem_dentro));
                 sem_wait(&(me->sem_contador_anul_pagos_pendientes));
                 me->contador_anul_pagos_pendientes++;
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
                 sem_wait(&(me->sem_anul_pagos_pend));
-                // FALTAN COSAS HASTA AQUÍ
-                ////////////////////////////////////////////////////////////////////
-                ///////////////////////////////////////////////////////////////////
-                ////////////////////////////////////////////////////////////////////
+                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+                me->contador_anul_pagos_pendientes--;
+                sem_post(&(me->sem_contador_anul_pagos_pendientes));
             }
             else
             { // SI TENGO PERMISO VOY
-                sem_post(&(me->sem_permiso_para_SCEM_anulpagos));
+                sem_post(&(me->dentro));
             }
         }
         // SECCIÓN CRÍTICA DE EXCLUSIÓN MUTUA BABY
 #ifdef __PRINT_PROCESO
         print("PAGOS --> VOY A LA SCEM BABY.\n");
 #endif
+        sem_wait(&(me->sem_dentro));
+        me->dentro = true;
+        sem_post(&(me->sem_dentro));
+        sem_wait(&(me->sem_contador_procesos_max_SC));
+        me->contador_procesos_max_SC++;
+        sem_post(&(me->sem_contador_procesos_max_SC));
 
-        sem_wait(&(me->sem_contador_procesos_SC));
-        me->contador_procesos_SC++;
-        sem_post(&(me->sem_contador_procesos_SC));
-        sem_wait(&(me->sem_SCEM));
-        sleep(SLEEP);
-        sem_post(&(me->sem_SCEM));
-        sem_wait(&(me->sem_contador_procesos_SC));
-        me->contador_procesos_SC--;
-        if (me->contador_procesos_SC == 0)
-        {
-            sem_post(&(me->sem_contador_procesos_SC));
+        ///////////////////////////////////
+        ///         SCEM              ////
+        /////////////////////////////////
+        sleep(SLEEP); // tiempo que se queda en la S.C
+        sem_wait(&(me->sem_prioridad_maxima));
+        sem_wait(&(me->sem_prioridad_max_otro_nodo));
+        if (me->prioridad_max_otro_nodo > me->prioridad_maxima)
+        { // Prioridad maxima en otro nodo
+            sem_post(&(me->sem_prioridad_maxima));
+            sem_post(&(me->sem_prioridad_max_otro_nodo));
             send_testigo(mi_id);
-            /////////////////////////////////////////////////////////////////////////
-            ////////////////////////////////////////////////////////////////////////
-            // FALTAN COSAS
         }
         else
         {
-            sem_post(&(me->sem_contador_procesos_SC));
-        }
-        sem_post(&(me->sem_contador_procesos_SC));
-        sem_wait(&(me->sem_tengo_que_enviar_testigo));
-        if (me->tengo_que_enviar_testigo)
-        {
-            sem_post(&(me->sem_tengo_que_enviar_testigo));
-        }
-        else
-        {
-            sem_post(&(me->sem_tengo_que_enviar_testigo));
-        }
+            if (me->prioridad_max_otro_nodo < me->prioridad_maxima)
+            { // Prioridad maxima en mi nodo
+                sem_post(&(me->sem_prioridad_maxima));
+                sem_post(&(me->sem_prioridad_max_otro_nodo));
+                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+                if (me->contador_anul_pagos_pendientes > 0) // La prioridad mas alta de mi nodo es pagos_anul
+                {
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_post(&(me->sem_anul_pagos_pend));
+                }
+                else
+                {
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+                    if (me->contador_reservas_admin_pendientes > 0) // La prioridad mas alta de mi nodo es reservas_admin
+                    {
+                        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                        sem_post(&(me->sem_reser_admin_pend));
+                    }
+                    else // La prioridad mas alta de mi nodo es consultas
+                    {
+                        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                        // FALTA PONER EL CASO DE CONSULTAS
+                    }
+                }
+            }
+            else
+            { // misma prioridad mi nodo y otro nodo
+                sem_post(&(me->sem_prioridad_maxima));
+                sem_post(&(me->sem_prioridad_max_otro_nodo));
+                sem_wait(&(me->sem_contador_procesos_max_SC));
+                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+                if (me->contador_procesos_max_SC >= EVITAR_RETECION_EM || me->contador_anul_pagos_pendientes == 0)
+                {
+                    sem_post(&(me->sem_contador_procesos_max_SC));
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    send_testigo(mi_id);
+                }
+                else
+                {
+                    sem_post(&(me->sem_contador_procesos_max_SC));
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                }
+            }
+        } // Si no hay nadie me voy
     }
 
     return 0;
