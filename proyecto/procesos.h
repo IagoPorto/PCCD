@@ -152,6 +152,69 @@ void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
   return;
 }
 
+void set_prioridad_max(memoria *me)
+{
+#ifdef __DEBUG
+  printf("DEBUG: Llega a la función set_prioridad_max\n");
+#endif
+  sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+  if (me->contador_anul_pagos_pendientes > 0)
+  {
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+#ifdef __DEBUG
+    printf("DEBUG: El proceso mas alto dentro de mi nodo es pagos\n");
+#endif
+    sem_wait(&(me->sem_prioridad_maxima));
+    me->prioridad_maxima = PAGOS_ANUL;
+    sem_post(&(me->sem_prioridad_maxima));
+  }
+  else
+  {
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    if (me->contador_reservas_admin_pendientes > 0)
+    {
+#ifdef __DEBUG
+      printf("DEBUG: El proceso mas alto dentro de mi nodo es reservas\n");
+#endif
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_prioridad_maxima));
+      me->prioridad_maxima = ADMIN_RESER;
+      sem_post(&(me->sem_prioridad_maxima));
+    }
+    else
+    {
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_contador_consultas_pendientes));
+      if (me->contador_consultas_pendientes > 0)
+      {
+#ifdef __DEBUG
+        printf("DEBUG: El proceso mas alto dentro de mi nodo es consultas\n");
+#endif
+        sem_post(&(me->sem_contador_consultas_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = CONSULTAS;
+        sem_post(&(me->sem_prioridad_maxima));
+      }
+      else
+      {
+#ifdef __DEBUG
+        printf("DEBUG: No hay procesos en mi nodo\n");
+#endif
+        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = 0;
+        sem_post(&(me->sem_prioridad_maxima));
+      }
+    }
+  }
+#ifdef __DEBUG
+  sem_wait(&(me->sem_prioridad_maxima));
+  printf("La prioridad máxima dentro del nodo es: %i\n", me->prioridad_maxima);
+  sem_post(&(me->sem_prioridad_maxima));
+#endif
+}
+
 int max(int n1, int n2)
 {
   if (n1 > n2)
