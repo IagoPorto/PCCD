@@ -1,6 +1,7 @@
 #include "procesos.h"
 
 memoria *me;
+void set_prioridad_max();
 
 int main(int argc, char *argv[])
 {
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
             if ((me->dentro) || !(me->testigo))
             { // SI HAY ALGUIEN DENTRO Y NO TENGO QUE PEDIR TESTIGO Y NO TENGO EL TESTIGO, ESPERO
 #ifdef __PRINT_PROCESO
-                print("PAGOS --> tengo que esperar porque no tengo permiso.\n");
+                printf("PAGOS --> tengo que esperar porque no tengo permiso.\n");
 #endif
                 sem_post(&(me->sem_dentro));
                 sem_post(&(me->sem_testigo));
@@ -116,13 +117,13 @@ int main(int argc, char *argv[])
             }
             else
             { // SI NO HAY NADIE DENTRO
-                sem_post(&(me->dentro));
+                sem_post(&(me->sem_dentro));
                 sem_post(&(me->sem_testigo));
             }
         }
         // SECCIÓN CRÍTICA DE EXCLUSIÓN MUTUA BABY
 #ifdef __PRINT_PROCESO
-        print("PAGOS --> VOY A LA SCEM BABY.\n");
+        printf("PAGOS --> VOY A LA SCEM BABY.\n");
 #endif
         sem_wait(&(me->sem_dentro));
         me->dentro = true;
@@ -214,4 +215,50 @@ int main(int argc, char *argv[])
     }
 
     return 0;
+}
+
+void set_prioridad_max()
+{
+    sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+    if (me->contador_anul_pagos_pendientes > 0)
+    {
+        sem_post(&(me->sem_contador_anul_pagos_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = PAGOS_ANUL;
+        sem_post(&(me->sem_prioridad_maxima));
+        return;
+    }
+    else
+    {
+        sem_post(&(me->sem_contador_anul_pagos_pendientes));
+        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+        if (me->contador_reservas_admin_pendientes > 0)
+        {
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
+            sem_wait(&(me->sem_prioridad_maxima));
+            me->prioridad_maxima = ADMIN_RESER;
+            sem_post(&(me->sem_prioridad_maxima));
+            return;
+        }
+        else
+        {
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
+            sem_wait(&(me->sem_contador_consultas_pendientes));
+            if (me->contador_consultas_pendientes > 0)
+            {
+                sem_post(&(me->sem_contador_consultas_pendientes));
+                sem_wait(&(me->sem_prioridad_maxima));
+                me->prioridad_maxima = CONSULTAS;
+                sem_post(&(me->sem_prioridad_maxima));
+                return;
+            }
+            else
+            {
+                sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                sem_wait(&(me->sem_prioridad_maxima));
+                me->prioridad_maxima = 0;
+                sem_post(&(me->sem_prioridad_maxima));
+            }
+        }
+    }
 }

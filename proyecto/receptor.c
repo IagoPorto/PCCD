@@ -61,8 +61,6 @@ int main(int argc, char *argv[])
     sem_init(&(me->sem_dentro), 0, 1);
     // INICIO RX!!!!!!!!!!!!!!!!!
     struct msgbuf_mensaje mensaje_rx;
-    int i;
-    bool quedan_solicitudes_sin_atender = false;
     sem_wait(&(me->sem_buzones_nodos));
     int id_de_mi_buzon = me->buzones_nodos[mi_id - 1];
     sem_post(&(me->sem_buzones_nodos));
@@ -140,9 +138,9 @@ int main(int argc, char *argv[])
 #ifdef __PRINT_RX
             printf("RECEPTOR: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
 #endif
-            sem_wait(&(me->prioridad_max_otro_nodo));
+            sem_wait(&(me->sem_prioridad_max_otro_nodo));
             me->prioridad_max_otro_nodo = 0;
-            sem_post(&(me->prioridad_max_otro_nodo));
+            sem_post(&(me->sem_prioridad_max_otro_nodo));
             sem_wait(&(me->sem_atendidas));
             sem_wait(&(me->sem_peticiones));
             // actualizar vector de atendidas y saber cual es la prioridad máxima de otro nodo
@@ -154,9 +152,9 @@ int main(int argc, char *argv[])
                 }
                 if (me->atendidas[i][0] < me->peticiones[i][0])
                 {
-                    sem_wait(&(me->prioridad_max_otro_nodo));
-                    me->prioridad_max_otro_nodo = (me->prioridad_max_otro_nodo, me->atendidas[i][1]);
-                    sem_post(&(me->prioridad_max_otro_nodo));
+                    sem_wait(&(me->sem_prioridad_max_otro_nodo));
+                    me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, me->atendidas[i][1]);
+                    sem_post(&(me->sem_prioridad_max_otro_nodo));
                 }
             }
             sem_post(&(me->sem_atendidas));
