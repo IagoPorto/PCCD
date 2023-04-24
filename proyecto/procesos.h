@@ -69,10 +69,56 @@ typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 } memoria;
 
+void set_prioridad_max()
+{
+  sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+  if (me->contador_anul_pagos_pendientes > 0)
+  {
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+    sem_wait(&(me->sem_prioridad_maxima));
+    me->prioridad_maxima = PAGOS_ANUL;
+    sem_post(&(me->sem_prioridad_maxima));
+    return;
+  }
+  else
+  {
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    if (me->contador_reservas_admin_pendientes > 0)
+    {
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_prioridad_maxima));
+      me->prioridad_maxima = ADMIN_RESER;
+      sem_post(&(me->sem_prioridad_maxima));
+      return;
+    }
+    else
+    {
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_contador_consultas_pendientes));
+      if (me->contador_consultas_pendientes > 0)
+      {
+        sem_post(&(me->sem_contador_consultas_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = CONSULTAS;
+        sem_post(&(me->sem_prioridad_maxima));
+        return;
+      }
+      else
+      {
+        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = 0;
+        sem_post(&(me->sem_prioridad_maxima));
+      }
+    }
+  }
+}
+
 void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
 {
 
-  int i = 0;
+  /*int i = 0;
   sem_wait(&sem_mi_id);
   int id_buscar = mi_id;
   int yo = mi_id;
@@ -148,7 +194,8 @@ void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
     sem_post(&sem_buzones_nodos);
 
     printf("PROCESO ENVIO: \n\t\t TESTIGO ENVIADO\n");
-  }
+  }*/
+  return;
 }
 
 int max(int n1, int n2)

@@ -98,12 +98,14 @@ int main(int argc, char *argv[])
             sem_post(&(me->sem_tengo_que_pedir_testigo));
             sem_post(&(me->sem_prioridad_maxima));
             sem_wait(&(me->sem_dentro));
-            if ((me->dentro))
-            { // SI NO TENGO PERMISO Y NO TENGO QUE PEDIR TESTIGO, ESPERO
+            sem_wait(&(me->sem_testigo));
+            if ((me->dentro) || !(me->testigo))
+            { // SI HAY ALGUIEN DENTRO Y NO TENGO QUE PEDIR TESTIGO Y NO TENGO EL TESTIGO, ESPERO
 #ifdef __PRINT_PROCESO
                 print("PAGOS --> tengo que esperar porque no tengo permiso.\n");
 #endif
                 sem_post(&(me->sem_dentro));
+                sem_post(&(me->sem_testigo));
                 sem_wait(&(me->sem_contador_anul_pagos_pendientes));
                 me->contador_anul_pagos_pendientes++;
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
@@ -113,8 +115,9 @@ int main(int argc, char *argv[])
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
             }
             else
-            { // SI TENGO PERMISO VOY
+            { // SI NO HAY NADIE DENTRO
                 sem_post(&(me->dentro));
+                sem_post(&(me->sem_testigo));
             }
         }
         // SECCIÓN CRÍTICA DE EXCLUSIÓN MUTUA BABY
@@ -127,21 +130,23 @@ int main(int argc, char *argv[])
         sem_wait(&(me->sem_contador_procesos_max_SC));
         me->contador_procesos_max_SC++;
         sem_post(&(me->sem_contador_procesos_max_SC));
-
-        ///////////////////////////////////
-        ///         SCEM              ////
-        /////////////////////////////////
         sleep(SLEEP); // tiempo que se queda en la S.C
-        sem_wait(&(me->sem_prioridad_maxima));
-        sem_wait(&(me->sem_prioridad_max_otro_nodo));
-        if (me->prioridad_max_otro_nodo > me->prioridad_maxima)
+        set_prioridad_max();
+
+        sem_wait(&(me->sem_tengo_que_enviar_testigo));
+        if (me->tengo_que_enviar_testigo)
         { // Prioridad maxima en otro nodo
-            sem_post(&(me->sem_prioridad_maxima));
-            sem_post(&(me->sem_prioridad_max_otro_nodo));
+            sem_post(&(me->sem_tengo_que_enviar_testigo));
             send_testigo(mi_id);
+            sem_wait(&(me->sem_dentro));
+            me->dentro = false;
+            sem_post(&(me->sem_dentro));
         }
         else
         {
+            sem_post(&(me->sem_tengo_que_enviar_testigo));
+            sem_wait(&(me->sem_prioridad_max_otro_nodo));
+            sem_wait(&(me->sem_prioridad_maxima));
             if (me->prioridad_max_otro_nodo < me->prioridad_maxima)
             { // Prioridad maxima en mi nodo
                 sem_post(&(me->sem_prioridad_maxima));
@@ -160,10 +165,22 @@ int main(int argc, char *argv[])
                     {
                         sem_post(&(me->sem_contador_reservas_admin_pendientes));
                         sem_post(&(me->sem_reser_admin_pend));
+                        sem_wait(&(me->sem_prioridad_maxima));
+                        me->prioridad_maxima = ADMIN_RESER;
+                        sem_post(&(me->sem_prioridad_maxima));
+                        sem_wait(&(me->sem_contador_procesos_max_SC));
+                        me->contador_procesos_max_SC = 0;
+                        sem_post(&(me->sem_contador_procesos_max_SC));
                     }
                     else // La prioridad mas alta de mi nodo es consultas
                     {
                         sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                        sem_wait(&(me->sem_prioridad_maxima));
+                        me->prioridad_maxima = CONSULTAS;
+                        sem_post(&(me->sem_prioridad_maxima));
+                        sem_wait(&(me->sem_contador_procesos_max_SC));
+                        me->contador_procesos_max_SC = 0;
+                        sem_post(&(me->sem_contador_procesos_max_SC));
                         // FALTA PONER EL CASO DE CONSULTAS
                     }
                 }
@@ -179,6 +196,12 @@ int main(int argc, char *argv[])
                     sem_post(&(me->sem_contador_procesos_max_SC));
                     sem_post(&(me->sem_contador_anul_pagos_pendientes));
                     send_testigo(mi_id);
+                    sem_wait(&(me->sem_dentro));
+                    me->dentro = false;
+                    sem_post(&(me->sem_dentro));
+                    sem_wait(&(me->sem_contador_procesos_max_SC));
+                    me->contador_procesos_max_SC = 0;
+                    sem_post(&(me->sem_contador_procesos_max_SC));
                 }
                 else
                 {
