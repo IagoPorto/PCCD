@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     sem_wait(&(me->sem_prioridad_maxima));
     me->prioridad_maxima = PAGOS_ANUL;
     sem_wait(&(me->sem_testigo));
-    if (me->tengo_que_pedir_testigo || (me->prioridad_maxima < PAGOS_ANUL && !me->testigo))
+    if (me->tengo_que_pedir_testigo && !me->testigo)
     { // Rama de pedir testigo
         sem_post(&(me->sem_testigo));
 #ifdef __PRINT_PROCESO
