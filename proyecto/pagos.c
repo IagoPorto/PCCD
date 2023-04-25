@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
         sem_post(&(me->sem_prioridad_maxima));
         sem_wait(&(me->sem_dentro));
         if ((me->dentro) || !(me->testigo))
-        { // SI HAY ALGUIEN DENTRO Y NO TENGO QUE PEDIR TESTIGO Y NO TENGO EL TESTIGO, ESPERO
+        { // SI HAY ALGUIEN DENTRO O NO TENGO EL TESTIGO, ESPERO
 #ifdef __PRINT_PROCESO
             printf("PAGOS --> tengo que esperar porque no tengo permiso.\n");
 #endif

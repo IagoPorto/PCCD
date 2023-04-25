@@ -207,6 +207,9 @@ int main(int argc, char *argv[])
                     sem_post(&(me->sem_consult_pend));
                 }
             }
+            sem_wait(&(me->sem_testigo));
+            me->testigo = true;
+            sem_post(&(me->sem_testigo));
 
             break;
         case (long)3:

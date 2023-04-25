@@ -125,6 +125,9 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
 
   if (encontrado)
   {
+#ifdef __DEBUG
+    printf("DEBUG: nodo destinatarios encontrado.\n");
+#endif
 
     // CREANDO EL MENSAJE PARA EL TESTIGO
     msg_testigo.id = id_buscar_encontrado;
@@ -150,6 +153,12 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
     sem_post(&me->sem_buzones_nodos);
 
     printf("PROCESO ENVIO: \n\t\t TESTIGO ENVIADO\n");
+  }
+  else
+  {
+#ifdef __DEBUG
+    printf("DEBUG: NO HAY NODO DISPONIBLE.\n");
+#endif
   }
   return;
 }
