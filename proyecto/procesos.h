@@ -70,19 +70,18 @@ typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 } memoria;
 
-void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
+void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
 {
 
-  /*int i = 0;
-  sem_wait(&sem_mi_id);
+  int i = 0, j = 0;
   int id_buscar = mi_id;
-  int yo = mi_id;
-  sem_post(&sem_mi_id);
+  int id_buscar_encontrado = 0;
+  int prioridad_buscar = 0;
   bool encontrado = false;
   struct msgbuf_mensaje msg_testigo;
   msg_testigo.msg_type = 2;
-  msg_testigo.id = yo;
-  if (id_buscar + i + 1 > N)
+  msg_testigo.id = mi_id;
+  if (id_buscar + 1 > N)
   {
     id_buscar = 1;
   }
@@ -93,7 +92,7 @@ void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
   }
 
   // COMPROBACIÓN DE SI HAY ALGUIEN ESPERANDO
-  for (i; i < N; i++)
+  for (i = 0; i < N; i++)
   {
 
     // ANILLO LÓGICO
@@ -101,24 +100,24 @@ void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
     {
       id_buscar = 1;
     }
-    if (id_buscar != yo)
+    if (id_buscar != mi_id)
     {
 
       // SI HAY MAS PETICIONES QUE ATENDIDAS, ESTÁ ESPERANDO EL TESTIGO
-      sem_wait(&sem_peticiones);
-      sem_wait(&sem_atendidas);
-      if (peticiones[id_buscar - 1] > atendidas[id_buscar - 1])
+      sem_wait(&me->sem_peticiones);
+      sem_wait(&me->sem_atendidas);
+      if ((me->peticiones[id_buscar - 1][0] > me->atendidas[id_buscar - 1][0]) && (prioridad_buscar < me->peticiones[id_buscar - 1][1]))
       {
-        sem_post(&sem_peticiones);
-        sem_post(&sem_atendidas);
+        sem_post(&me->sem_atendidas);
+        prioridad_buscar = me->peticiones[id_buscar - 1][1];
+        sem_post(&me->sem_peticiones);
+        id_buscar_encontrado = id_buscar;
         encontrado = true;
-        printf("PROCESO ENVIO: El id al que le vamos a enviar el testigo es: %d\n", id_buscar);
-        break;
       }
       else
       {
-        sem_post(&sem_peticiones);
-        sem_post(&sem_atendidas);
+        sem_post(&me->sem_peticiones);
+        sem_post(&me->sem_atendidas);
       }
     }
     id_buscar++;
@@ -128,28 +127,30 @@ void send_testigo(int id) // MODIFICAR PARA LA NUEVA SITUACIÓN
   {
 
     // CREANDO EL MENSAJE PARA EL TESTIGO
-    msg_testigo.id = id_buscar;
-    i = 0;
-    for (i; i < N; i++)
+    msg_testigo.id = id_buscar_encontrado;
+    for (i = 0; i < N; i++)
     {
-      sem_wait(&sem_atendidas);
-      msg_testigo.atendidas[i] = atendidas[i];
-      sem_post(&sem_atendidas);
+      for (j = 0; j < 2; j++)
+      {
+        sem_wait(&me->sem_atendidas);
+        msg_testigo.atendidas[i][j] = me->atendidas[i][j];
+        sem_post(&me->sem_atendidas);
+      }
     }
 
-    sem_wait(&sem_testigo);
-    testigo = false;
-    sem_post(&sem_testigo);
+    sem_wait(&me->sem_testigo);
+    me->testigo = false;
+    sem_post(&me->sem_testigo);
     // ENVIANDO TESTIGO
-    sem_wait(&sem_buzones_nodos);
-    if (msgsnd(buzones_nodos[id_buscar - 1], &msg_testigo, sizeof(msg_testigo), 0))
+    sem_wait(&me->sem_buzones_nodos);
+    if (msgsnd(me->buzones_nodos[id_buscar_encontrado - 1], &msg_testigo, sizeof(msg_testigo), 0))
     {
       printf("PROCESO ENVIO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
     }
-    sem_post(&sem_buzones_nodos);
+    sem_post(&me->sem_buzones_nodos);
 
     printf("PROCESO ENVIO: \n\t\t TESTIGO ENVIADO\n");
-  }*/
+  }
   return;
 }
 

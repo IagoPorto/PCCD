@@ -50,33 +50,25 @@ int main(int argc, char *argv[])
     me->prioridad_maxima = 0;
     // inicialización de semáforos
     // inicialización semáforos de paso.
-    int error = sem_init(&(me->sem_anul_pagos_pend), 1, 0);
-    error += sem_init(&(me->sem_reser_admin_pend), 1, 0);
-    error += sem_init(&(me->sem_consult_pend), 1, 0);
+    sem_init(&(me->sem_anul_pagos_pend), 1, 0);
+    sem_init(&(me->sem_reser_admin_pend), 1, 0);
+    sem_init(&(me->sem_consult_pend), 1, 0);
     // inicialización semáforos exclusión mutua
-    error += sem_init(&me->sem_contador_anul_pagos_pendientes, 1, 1);
-    error += sem_init(&(me->sem_contador_reservas_admin_pendientes), 1, 1);
-    error += sem_init(&(me->sem_contador_consultas_pendientes), 1, 1);
-    error += sem_init(&(me->sem_mi_peticion), 1, 1);
-    error += sem_init(&(me->sem_testigo), 1, 1);
-    error += sem_init(&(me->sem_tengo_que_enviar_testigo), 1, 1);
-    error += sem_init(&(me->sem_tengo_que_pedir_testigo), 1, 1);
-    error += sem_init(&(me->sem_prioridad_maxima), 1, 1);
-    error += sem_init(&(me->sem_contador_procesos_max_SC), 1, 1);
-    error += sem_init(&(me->sem_prioridad_max_otro_nodo), 1, 1);
-    error += sem_init(&(me->sem_dentro), 1, 1);
-    error += sem_init(&(me->sem_atendidas), 1, 1);
-    error += sem_init(&(me->sem_peticiones), 1, 1);
-    error += sem_init(&(me->sem_buzones_nodos), 1, 1);
-    if (error < 0)
-    {
-        printf("Hubo algún error con algún semáforo\n");
-        return -1;
-    }
-    else
-    {
-        printf("TODOS LOS SEMÁFOROS INICIALIZADOS\n");
-    }
+    sem_init(&me->sem_contador_anul_pagos_pendientes, 1, 1);
+    sem_init(&(me->sem_contador_reservas_admin_pendientes), 1, 1);
+    sem_init(&(me->sem_contador_consultas_pendientes), 1, 1);
+    sem_init(&(me->sem_mi_peticion), 1, 1);
+    sem_init(&(me->sem_testigo), 1, 1);
+    sem_init(&(me->sem_tengo_que_enviar_testigo), 1, 1);
+    sem_init(&(me->sem_tengo_que_pedir_testigo), 1, 1);
+    sem_init(&(me->sem_prioridad_maxima), 1, 1);
+    sem_init(&(me->sem_contador_procesos_max_SC), 1, 1);
+    sem_init(&(me->sem_prioridad_max_otro_nodo), 1, 1);
+    sem_init(&(me->sem_dentro), 1, 1);
+    sem_init(&(me->sem_atendidas), 1, 1);
+    sem_init(&(me->sem_peticiones), 1, 1);
+    sem_init(&(me->sem_buzones_nodos), 1, 1);
+
     // INICIALIZACIÓN DE BUZONES NODOS
     //  INICIALIZACIÓN BUZONES DE LOS NODOS.
     for (i = 0; i < N; i++)
@@ -113,7 +105,7 @@ int main(int argc, char *argv[])
         {
         case (long)1: // EL mensaje es una petición.
 #ifdef __PRINT_RX
-            printf("RECEPTOR: He recibido una petición del nodo: %d\n", mensaje_rx.id);
+            printf("RECEPTOR: He recibido una petición del nodo: %d, con prioridad: %d\n", mensaje_rx.id, mensaje_rx.prioridad);
 #endif
             sem_wait(&(me->sem_peticiones));
             me->peticiones[mensaje_rx.id - 1][0] = max(me->peticiones[mensaje_rx.id - 1][0], mensaje_rx.peticion);
@@ -147,7 +139,7 @@ int main(int argc, char *argv[])
                     if (me->prioridad_maxima == 0)
                     {
                         sem_post(&(me->sem_prioridad_maxima));
-                        send_testigo(mi_id);
+                        send_testigo(mi_id, me);
                         sem_wait(&(me->sem_tengo_que_pedir_testigo));
                         me->tengo_que_pedir_testigo = true;
                         sem_post(&(me->sem_tengo_que_pedir_testigo));

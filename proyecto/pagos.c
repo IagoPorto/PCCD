@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
         printf("PAGOS --> La prioridad maxima está en otro nodo, tengo que enviar el testigo.\n");
 #endif
         sem_post(&(me->sem_tengo_que_enviar_testigo));
-        send_testigo(mi_id);
+        send_testigo(mi_id, me);
         sem_wait(&(me->sem_dentro));
         me->dentro = false;
         sem_post(&(me->sem_dentro));
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
             {
                 sem_post(&(me->sem_contador_procesos_max_SC));
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                send_testigo(mi_id);
+                send_testigo(mi_id, me);
                 sem_wait(&(me->sem_dentro));
                 me->dentro = false;
                 sem_post(&(me->sem_dentro));
