@@ -1,3 +1,5 @@
+
+
 #include "procesos.h"
 
 memoria *me;
@@ -48,24 +50,33 @@ int main(int argc, char *argv[])
     me->prioridad_maxima = 0;
     // inicialización de semáforos
     // inicialización semáforos de paso.
-    sem_init(&me->sem_anul_pagos_pend, 0, 0);
-    sem_init(&(me->sem_reser_admin_pend), 0, 0);
-    sem_init(&(me->sem_consult_pend), 0, 0);
+    int error = sem_init(&(me->sem_anul_pagos_pend), 1, 0);
+    error += sem_init(&(me->sem_reser_admin_pend), 1, 0);
+    error += sem_init(&(me->sem_consult_pend), 1, 0);
     // inicialización semáforos exclusión mutua
-    sem_init(&me->sem_contador_anul_pagos_pendientes, 0, 1);
-    sem_init(&(me->sem_contador_reservas_admin_pendientes), 0, 1);
-    sem_init(&(me->sem_contador_consultas_pendientes), 0, 1);
-    sem_init(&(me->sem_mi_peticion), 0, 1);
-    sem_init(&(me->sem_testigo), 0, 1);
-    sem_init(&(me->sem_tengo_que_enviar_testigo), 0, 1);
-    sem_init(&(me->sem_tengo_que_pedir_testigo), 0, 1);
-    sem_init(&(me->sem_prioridad_maxima), 0, 1);
-    sem_init(&(me->sem_contador_procesos_max_SC), 0, 1);
-    sem_init(&(me->sem_prioridad_max_otro_nodo), 0, 1);
-    sem_init(&(me->sem_dentro), 0, 1);
-    sem_init(&(me->sem_atendidas), 0, 1);
-    sem_init(&(me->sem_peticiones), 0, 1);
-    sem_init(&(me->sem_buzones_nodos), 0, 1);
+    error += sem_init(&me->sem_contador_anul_pagos_pendientes, 1, 1);
+    error += sem_init(&(me->sem_contador_reservas_admin_pendientes), 1, 1);
+    error += sem_init(&(me->sem_contador_consultas_pendientes), 1, 1);
+    error += sem_init(&(me->sem_mi_peticion), 1, 1);
+    error += sem_init(&(me->sem_testigo), 1, 1);
+    error += sem_init(&(me->sem_tengo_que_enviar_testigo), 1, 1);
+    error += sem_init(&(me->sem_tengo_que_pedir_testigo), 1, 1);
+    error += sem_init(&(me->sem_prioridad_maxima), 1, 1);
+    error += sem_init(&(me->sem_contador_procesos_max_SC), 1, 1);
+    error += sem_init(&(me->sem_prioridad_max_otro_nodo), 1, 1);
+    error += sem_init(&(me->sem_dentro), 1, 1);
+    error += sem_init(&(me->sem_atendidas), 1, 1);
+    error += sem_init(&(me->sem_peticiones), 1, 1);
+    error += sem_init(&(me->sem_buzones_nodos), 1, 1);
+    if (error < 0)
+    {
+        printf("Hubo algún error con algún semáforo\n");
+        return -1;
+    }
+    else
+    {
+        printf("TODOS LOS SEMÁFOROS INICIALIZADOS\n");
+    }
     // INICIALIZACIÓN DE BUZONES NODOS
     //  INICIALIZACIÓN BUZONES DE LOS NODOS.
     for (i = 0; i < N; i++)
