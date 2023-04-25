@@ -39,6 +39,16 @@ int main(int argc, char *argv[])
         me->testigo = false;
         me->tengo_que_pedir_testigo = true;
     }
+
+    for (i = 0; i < N; i++)
+    {
+        for (j = 0; j < N_PRIO; j++)
+        {
+            me->atendidas[i][j] = 0;
+            me->peticiones[i][j] = 0;
+        }
+    }
+
     me->dentro = false;
     me->mi_peticion = 0;
     me->tengo_que_enviar_testigo = false;
@@ -105,11 +115,10 @@ int main(int argc, char *argv[])
         {
         case (long)1: // EL mensaje es una petición.
 #ifdef __PRINT_RX
-            printf("RECEPTOR: He recibido una petición del nodo: %d, con prioridad: %d\n", mensaje_rx.id, mensaje_rx.prioridad);
+            printf("RECEPTOR: He recibido una petición (%d) del nodo: %d, con prioridad: %d\n", mensaje_rx.peticion, mensaje_rx.id, mensaje_rx.prioridad);
 #endif
             sem_wait(&(me->sem_peticiones));
-            me->peticiones[mensaje_rx.id - 1][0] = max(me->peticiones[mensaje_rx.id - 1][0], mensaje_rx.peticion);
-            me->peticiones[mensaje_rx.id - 1][1] = mensaje_rx.prioridad;
+            me->peticiones[mensaje_rx.id - 1][mensaje_rx.prioridad - 1] = max(me->peticiones[mensaje_rx.id - 1][mensaje_rx.prioridad - 1], mensaje_rx.peticion);
             sem_post(&(me->sem_peticiones));
             sem_wait(&(me->sem_prioridad_max_otro_nodo));
             me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, mensaje_rx.prioridad);
@@ -175,14 +184,14 @@ int main(int argc, char *argv[])
             // actualizar vector de atendidas y saber cual es la prioridad máxima de otro nodo
             for (i = 0; i < N; i++)
             {
-                for (j = 0; j < 2; j++)
+                for (j = 0; j < N_PRIO; j++)
                 {
                     me->atendidas[i][j] = mensaje_rx.atendidas[i][j];
                 }
-                if (me->atendidas[i][0] < me->peticiones[i][0])
+                if (me->atendidas[i][j] < me->peticiones[i][j])
                 {
                     sem_wait(&(me->sem_prioridad_max_otro_nodo));
-                    me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, me->atendidas[i][1]);
+                    me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j);
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
                 }
             }

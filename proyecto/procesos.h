@@ -13,21 +13,22 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
+#define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
+#define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
+#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
+#define __DEBUG
+
 #define N 5 // --> nodos
 #define P 5 // --> procesos
 #define MAX_ESPERA 10
 #define SLEEP 3
+#define N_PRIO 3
 
 #define PAGOS_ANUL 3
 #define ADMIN_RESER 2
 #define CONSULTAS 1
 
 #define EVITAR_RETECION_EM 10 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
-
-#define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
-#define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
-#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
-#define __DEBUG
 
 struct msgbuf_mensaje
 {
@@ -37,7 +38,7 @@ struct msgbuf_mensaje
   int peticion;
   int prioridad;
   int testigo_en_juego; //???????
-  int atendidas[N][2];
+  int atendidas[N][N_PRIO];
 };
 
 typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
@@ -48,7 +49,7 @@ typedef struct // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   bool tengo_que_enviar_testigo;
   bool dentro;
 
-  int atendidas[N][2], peticiones[N][2];
+  int atendidas[N][N_PRIO], peticiones[N][N_PRIO];
   int buzones_nodos[N];
 
   int prioridad_maxima, prioridad_max_otro_nodo;
@@ -75,8 +76,6 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
 
   int i = 0, j = 0;
   int id_buscar = mi_id;
-  int id_buscar_encontrado = 0;
-  int prioridad_buscar = 0;
   bool encontrado = false;
   struct msgbuf_mensaje msg_testigo;
   msg_testigo.msg_type = 2;
@@ -92,35 +91,40 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
   }
 
   // COMPROBACIÓN DE SI HAY ALGUIEN ESPERANDO
-  for (i = 0; i < N; i++)
+  for (j = N_PRIO - 1; j > -1; j--)
   {
-
-    // ANILLO LÓGICO
-    if (id_buscar > N)
-    {
-      id_buscar = 1;
-    }
-    if (id_buscar != mi_id)
+    for (i = 0; i < N; i++)
     {
 
-      // SI HAY MAS PETICIONES QUE ATENDIDAS, ESTÁ ESPERANDO EL TESTIGO
-      sem_wait(&me->sem_peticiones);
-      sem_wait(&me->sem_atendidas);
-      if ((me->peticiones[id_buscar - 1][0] > me->atendidas[id_buscar - 1][0]) && (prioridad_buscar < me->peticiones[id_buscar - 1][1]))
+      // ANILLO LÓGICO
+      if (id_buscar > N)
       {
-        sem_post(&me->sem_atendidas);
-        prioridad_buscar = me->peticiones[id_buscar - 1][1];
-        sem_post(&me->sem_peticiones);
-        id_buscar_encontrado = id_buscar;
-        encontrado = true;
+        id_buscar = 1;
       }
-      else
+      if (id_buscar != mi_id)
       {
-        sem_post(&me->sem_peticiones);
-        sem_post(&me->sem_atendidas);
+
+        // SI HAY MAS PETICIONES QUE ATENDIDAS, ESTÁ ESPERANDO EL TESTIGO
+        sem_wait(&me->sem_peticiones);
+        sem_wait(&me->sem_atendidas);
+        if ((me->peticiones[id_buscar - 1][j] > me->atendidas[id_buscar - 1][j]))
+        {
+#ifdef __DEBUG
+          printf("\nDEBUG: Nodo: %d; con prioridad: %d; las peticiones son: %d; las atendidas son: %d\n\n", id_buscar, j + 1, me->peticiones[id_buscar - 1][j], me->atendidas[id_buscar - 1][j]);
+#endif
+          sem_post(&me->sem_atendidas);
+          sem_post(&me->sem_peticiones);
+          encontrado = true;
+          break;
+        }
+        else
+        {
+          sem_post(&me->sem_peticiones);
+          sem_post(&me->sem_atendidas);
+        }
       }
+      id_buscar++;
     }
-    id_buscar++;
   }
 
   if (encontrado)
@@ -130,10 +134,10 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
 #endif
 
     // CREANDO EL MENSAJE PARA EL TESTIGO
-    msg_testigo.id = id_buscar_encontrado;
+    msg_testigo.id = id_buscar;
     for (i = 0; i < N; i++)
     {
-      for (j = 0; j < 2; j++)
+      for (j = 0; j < N_PRIO; j++)
       {
         sem_wait(&me->sem_atendidas);
         msg_testigo.atendidas[i][j] = me->atendidas[i][j];
@@ -145,8 +149,11 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
     me->testigo = false;
     sem_post(&me->sem_testigo);
     // ENVIANDO TESTIGO
+    sem_wait(&(me->sem_tengo_que_enviar_testigo));
+    me->tengo_que_enviar_testigo = false;
+    sem_post(&(me->sem_tengo_que_enviar_testigo));
     sem_wait(&me->sem_buzones_nodos);
-    if (msgsnd(me->buzones_nodos[id_buscar_encontrado - 1], &msg_testigo, sizeof(msg_testigo), 0))
+    if (msgsnd(me->buzones_nodos[id_buscar - 1], &msg_testigo, sizeof(msg_testigo), 0))
     {
       printf("PROCESO ENVIO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
     }
@@ -165,16 +172,10 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
 
 void set_prioridad_max(memoria *me)
 {
-#ifdef __DEBUG
-  printf("DEBUG: Llega a la función set_prioridad_max\n");
-#endif
   sem_wait(&(me->sem_contador_anul_pagos_pendientes));
   if (me->contador_anul_pagos_pendientes > 0)
   {
     sem_post(&(me->sem_contador_anul_pagos_pendientes));
-#ifdef __DEBUG
-    printf("DEBUG: El proceso mas alto dentro de mi nodo es pagos\n");
-#endif
     sem_wait(&(me->sem_prioridad_maxima));
     me->prioridad_maxima = PAGOS_ANUL;
     sem_post(&(me->sem_prioridad_maxima));
@@ -185,9 +186,6 @@ void set_prioridad_max(memoria *me)
     sem_wait(&(me->sem_contador_reservas_admin_pendientes));
     if (me->contador_reservas_admin_pendientes > 0)
     {
-#ifdef __DEBUG
-      printf("DEBUG: El proceso mas alto dentro de mi nodo es reservas\n");
-#endif
       sem_post(&(me->sem_contador_reservas_admin_pendientes));
       sem_wait(&(me->sem_prioridad_maxima));
       me->prioridad_maxima = ADMIN_RESER;
@@ -199,9 +197,6 @@ void set_prioridad_max(memoria *me)
       sem_wait(&(me->sem_contador_consultas_pendientes));
       if (me->contador_consultas_pendientes > 0)
       {
-#ifdef __DEBUG
-        printf("DEBUG: El proceso mas alto dentro de mi nodo es consultas\n");
-#endif
         sem_post(&(me->sem_contador_consultas_pendientes));
         sem_wait(&(me->sem_prioridad_maxima));
         me->prioridad_maxima = CONSULTAS;
@@ -209,9 +204,6 @@ void set_prioridad_max(memoria *me)
       }
       else
       {
-#ifdef __DEBUG
-        printf("DEBUG: No hay procesos en mi nodo\n");
-#endif
         sem_post(&(me->sem_contador_consultas_pendientes));
         sem_wait(&(me->sem_prioridad_maxima));
         me->prioridad_maxima = 0;

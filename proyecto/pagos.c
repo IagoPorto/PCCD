@@ -39,19 +39,17 @@ int main(int argc, char *argv[])
         sem_post(&(me->sem_prioridad_maxima));
         me->tengo_que_pedir_testigo = false;
         sem_post(&(me->sem_tengo_que_pedir_testigo));
-
         struct msgbuf_mensaje solicitud;
         sem_wait(&(me->sem_mi_peticion));
-        me->mi_peticion++;
+        me->mi_peticion = me->mi_peticion + 1;
+        sem_wait(&(me->sem_peticiones));
+        me->peticiones[mi_id - 1][PAGOS_ANUL - 1] = me->mi_peticion;
+        sem_post(&(me->sem_peticiones));
         solicitud.peticion = me->mi_peticion;
         sem_post(&(me->sem_mi_peticion));
         solicitud.msg_type = (long)1;
         solicitud.id = mi_id;
         solicitud.prioridad = PAGOS_ANUL;
-        sem_wait(&(me->sem_peticiones));
-        me->peticiones[mi_id - 1][0] = solicitud.peticion;
-        me->peticiones[mi_id - 1][1] = solicitud.prioridad;
-        sem_post(&(me->sem_peticiones));
 
 #ifdef __DEBUG
         printf("El mensaje es de tipo: %ld, con peticion: %i, con id: %i y prioridad: %i\n",
@@ -151,7 +149,22 @@ int main(int argc, char *argv[])
 #ifdef __PRINT_PROCESO
         printf("PAGOS --> La prioridad maxima está en otro nodo, tengo que enviar el testigo.\n");
 #endif
+        me->tengo_que_enviar_testigo = false;
         sem_post(&(me->sem_tengo_que_enviar_testigo));
+        sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+        if (me->contador_anul_pagos_pendientes > 0)
+        {
+            sem_post(&(me->sem_contador_anul_pagos_pendientes));
+            sem_wait(&(me->sem_atendidas));
+            sem_wait(&(me->sem_peticiones));
+            me->atendidas[mi_id - 1][PAGOS_ANUL - 1] = me->peticiones[mi_id - 1][PAGOS_ANUL - 1];
+            sem_post(&(me->sem_atendidas));
+            sem_post(&(me->sem_peticiones));
+        }
+        else
+        {
+            sem_post(&(me->sem_contador_anul_pagos_pendientes));
+        }
         send_testigo(mi_id, me);
         sem_wait(&(me->sem_dentro));
         me->dentro = false;
@@ -223,6 +236,20 @@ int main(int argc, char *argv[])
 #endif
                 sem_post(&(me->sem_contador_procesos_max_SC));
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+                if (me->contador_anul_pagos_pendientes > 0)
+                {
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_wait(&(me->sem_atendidas));
+                    sem_wait(&(me->sem_peticiones));
+                    me->atendidas[mi_id - 1][PAGOS_ANUL - 1] = me->peticiones[mi_id - 1][PAGOS_ANUL - 1];
+                    sem_post(&(me->sem_atendidas));
+                    sem_post(&(me->sem_peticiones));
+                }
+                else
+                {
+                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                }
                 send_testigo(mi_id, me);
                 sem_wait(&(me->sem_dentro));
                 me->dentro = false;
