@@ -113,6 +113,9 @@ int main(int argc, char *argv[])
             sem_post(&(me->sem_peticiones));
             sem_wait(&(me->sem_prioridad_max_otro_nodo));
             me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, mensaje_rx.prioridad);
+#ifdef __DEBUG
+            printf("La prioridad máxima de otro nodo es: %i", me->prioridad_max_otro_nodo);
+#endif
             sem_post(&(me->sem_prioridad_max_otro_nodo));
             printf("\n");
 

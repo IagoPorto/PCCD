@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
             sem_post(&(me->sem_prioridad_max_otro_nodo));
             sem_wait(&(me->sem_prioridad_maxima));
 #ifdef __DEBUG
-            printf("La prioridad max de mi nodo es %i y PAGOS_ANUL es %i.\n", me->prioridad_maxima, PAGOS_ANUL);
+            printf("DEBUG: La prioridad max de mi nodo es %i y PAGOS_ANUL es %i.\n", me->prioridad_maxima, PAGOS_ANUL);
 #endif
             if (me->prioridad_maxima == PAGOS_ANUL) // La prioridad mas alta de mi nodo es pagos_anul
             {
@@ -209,12 +209,18 @@ int main(int argc, char *argv[])
         }
         else
         { // misma prioridad mi nodo y otro nodo
+#ifdef __PRINT_PROCESO
+            printf("PAGOS --> Mi nodo y otro nodo tenemos la misma prioridad.\n");
+#endif
             sem_post(&(me->sem_prioridad_maxima));
             sem_post(&(me->sem_prioridad_max_otro_nodo));
             sem_wait(&(me->sem_contador_procesos_max_SC));
             sem_wait(&(me->sem_contador_anul_pagos_pendientes));
             if (me->contador_procesos_max_SC >= EVITAR_RETECION_EM || me->contador_anul_pagos_pendientes == 0)
             {
+#ifdef __PRINT_PROCESO
+                printf("PAGOS --> Quiero evitar la exclusión mutua o ya no procesos de esta prioridad en mi nodo.\n");
+#endif
                 sem_post(&(me->sem_contador_procesos_max_SC));
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
                 send_testigo(mi_id, me);
@@ -229,7 +235,7 @@ int main(int argc, char *argv[])
             {
                 sem_post(&(me->sem_contador_procesos_max_SC));
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                sem_post(&(me->sem_anul_pagos_pend));
             }
         }
     } // Si no hay nadie me voy

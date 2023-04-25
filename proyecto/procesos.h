@@ -221,7 +221,7 @@ void set_prioridad_max(memoria *me)
   }
 #ifdef __DEBUG
   sem_wait(&(me->sem_prioridad_maxima));
-  printf("La prioridad máxima dentro del nodo es: %i\n", me->prioridad_maxima);
+  printf("DEBUG: La prioridad máxima dentro del nodo es: %i\n", me->prioridad_maxima);
   sem_post(&(me->sem_prioridad_maxima));
 #endif
 }
