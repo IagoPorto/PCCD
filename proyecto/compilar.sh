@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#gcc consultas.c -o consultas -Wall
-#gcc admin.c -o admin -Wall
-#gcc reservas.c -o reservas -Wall
+#gcc -Wall consultas.c -o consultas -lpthread
+#gcc -Wall admin.c -o admin -lpthread
+#gcc -Wall reservas.c -o reservas -lpthread
 gcc -Wall pagos.c -o pagos -lpthread
 gcc -Wall receptor.c -o receptor -lpthread
-#gcc anulaciones.c -o anulaciones -Wall
+gcc -Wall anulaciones.c -o anulaciones -lpthread
 
 echo "Todo compilado, si hay errores te jodes."
 
