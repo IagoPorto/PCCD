@@ -149,6 +149,9 @@ void send_testigo(int mi_id, memoria *me) // MODIFICAR PARA LA NUEVA SITUACIÓN
     me->testigo = false;
     sem_post(&me->sem_testigo);
     // ENVIANDO TESTIGO
+    sem_wait(&(me->sem_tengo_que_pedir_testigo));
+    me->tengo_que_pedir_testigo = true;
+    sem_post(&(me->sem_tengo_que_pedir_testigo));
     sem_wait(&(me->sem_tengo_que_enviar_testigo));
     me->tengo_que_enviar_testigo = false;
     sem_post(&(me->sem_tengo_que_enviar_testigo));

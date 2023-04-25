@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     sem_wait(&(me->sem_prioridad_maxima));
     me->prioridad_maxima = PAGOS_ANUL;
     sem_wait(&(me->sem_testigo));
-    if (me->tengo_que_pedir_testigo || (me->prioridad_maxima < PAGOS_ANUL && !me->testigo))
+    if (me->tengo_que_pedir_testigo && !me->testigo)
     { // Rama de pedir testigo
         sem_post(&(me->sem_testigo));
 #ifdef __PRINT_PROCESO
@@ -110,13 +110,7 @@ int main(int argc, char *argv[])
             sem_wait(&(me->sem_contador_anul_pagos_pendientes));
             me->contador_anul_pagos_pendientes++;
             sem_post(&(me->sem_contador_anul_pagos_pendientes));
-#ifdef __DEBUG
-            printf("PAGOS --> Me quedo aquí.\n");
-#endif
             sem_wait(&(me->sem_anul_pagos_pend));
-#ifdef __DEBUG
-            printf("PAGOS --> Me voy de aquí.\n");
-#endif
             sem_wait(&(me->sem_contador_anul_pagos_pendientes));
             me->contador_anul_pagos_pendientes--;
             sem_post(&(me->sem_contador_anul_pagos_pendientes));
