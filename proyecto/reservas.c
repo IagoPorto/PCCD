@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
             sem_post(&(me->sem_testigo));
             sem_wait(&(me->sem_contador_reservas_admin_pendientes));
             me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
             sem_wait(&(me->sem_reser_admin_pend));
             sem_wait(&(me->sem_contador_reservas_admin_pendientes));
             me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
@@ -163,6 +164,10 @@ int main(int argc, char *argv[])
     }
     else
     {
+#ifdef __DEBUG
+        printf("DEBUG --> No tengo que enviar el nodo.\n");
+#endif
+
         sem_post(&(me->sem_tengo_que_enviar_testigo));
         sem_wait(&(me->sem_prioridad_max_otro_nodo));
         sem_wait(&(me->sem_prioridad_maxima));
