@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 #ifdef __PRINT_PROCESO
         printf("RESERVAS --> Tengo que pedir el testigo\n");
 #endif
-        me->prioridad_maxima = ADMIN_RESER;
+        me->prioridad_maxima = ADMIN_RESER; // establecemos la prioridad máxima
         sem_post(&(me->sem_prioridad_maxima));
         me->tengo_que_pedir_testigo = false;
         sem_post(&(me->sem_tengo_que_pedir_testigo));
@@ -82,13 +82,13 @@ int main(int argc, char *argv[])
             }
         }
         // ACABAMOS CON EL ENVIO DE PETICIONES AHORA ME TOCA ESPERAR.
-        sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-        me->contador_anul_pagos_pendientes++;
-        sem_post(&(me->sem_contador_anul_pagos_pendientes));
-        sem_wait(&(me->sem_anul_pagos_pend));
-        sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-        me->contador_anul_pagos_pendientes--;
-        sem_post(&(me->sem_contador_anul_pagos_pendientes));
+        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+        me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
+        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+        sem_wait(&(me->sem_reser_admin_pend));
+        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+        me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
+        sem_post(&(me->sem_contador_reservas_admin_pendientes));
     }
     else // NO TENGO QUE PEDIR EL TESTIGO
     {
@@ -105,19 +105,12 @@ int main(int argc, char *argv[])
 #endif
             sem_post(&(me->sem_dentro));
             sem_post(&(me->sem_testigo));
-            sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-            me->contador_anul_pagos_pendientes++;
-            sem_post(&(me->sem_contador_anul_pagos_pendientes));
-#ifdef __DEBUG
-            printf("RESERVAS --> Me quedo aquí.\n");
-#endif
-            sem_wait(&(me->sem_anul_pagos_pend));
-#ifdef __DEBUG
-            printf("RESERVAS --> Me voy de aquí.\n");
-#endif
-            sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-            me->contador_anul_pagos_pendientes--;
-            sem_post(&(me->sem_contador_anul_pagos_pendientes));
+            sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+            me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
+            sem_wait(&(me->sem_reser_admin_pend));
+            sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+            me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
         }
         else
         { // SI NO HAY NADIE DENTRO
@@ -133,7 +126,7 @@ int main(int argc, char *argv[])
     me->dentro = true;
     sem_post(&(me->sem_dentro));
     sem_wait(&(me->sem_contador_procesos_max_SC));
-    me->contador_procesos_max_SC++;
+    me->contador_procesos_max_SC = me->contador_procesos_max_SC + 1;
     sem_post(&(me->sem_contador_procesos_max_SC));
     sleep(SLEEP); // tiempo que se queda en la S.C
 #ifdef __PRINT_PROCESO
@@ -149,10 +142,10 @@ int main(int argc, char *argv[])
 #endif
         me->tengo_que_enviar_testigo = false;
         sem_post(&(me->sem_tengo_que_enviar_testigo));
-        sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-        if (me->contador_anul_pagos_pendientes > 0)
+        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+        if (me->contador_reservas_admin_pendientes == 0)
         {
-            sem_post(&(me->sem_contador_anul_pagos_pendientes));
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
             sem_wait(&(me->sem_atendidas));
             sem_wait(&(me->sem_peticiones));
             me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
@@ -161,7 +154,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            sem_post(&(me->sem_contador_anul_pagos_pendientes));
+            sem_post(&(me->sem_contador_reservas_admin_pendientes));
         }
         send_testigo(mi_id, me);
         sem_wait(&(me->sem_dentro));
@@ -184,7 +177,7 @@ int main(int argc, char *argv[])
 #ifdef __DEBUG
             printf("DEBUG: La prioridad max de mi nodo es %i y ADMIN_RESER es %i.\n", me->prioridad_maxima, ADMIN_RESER);
 #endif
-            if (me->prioridad_maxima == ADMIN_RESER) // La prioridad mas alta de mi nodo es ADMIN_RESER
+            if (me->prioridad_maxima == PAGOS_ANUL) // La prioridad mas alta de mi nodo es pagos anulaciones
             {
 #ifdef __PRINT_PROCESO
                 printf("RESERVAS --> le doy paso a mi compañero.\n");
@@ -226,18 +219,16 @@ int main(int argc, char *argv[])
             sem_post(&(me->sem_prioridad_maxima));
             sem_post(&(me->sem_prioridad_max_otro_nodo));
             sem_wait(&(me->sem_contador_procesos_max_SC));
-            sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-            if (me->contador_procesos_max_SC >= EVITAR_RETECION_EM || me->contador_anul_pagos_pendientes == 0)
+            sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+            if (me->contador_procesos_max_SC >= EVITAR_RETECION_EM || me->contador_reservas_admin_pendientes == 0)
             {
 #ifdef __PRINT_PROCESO
                 printf("RESERVAS --> Quiero evitar la exclusión mutua o ya no procesos de esta prioridad en mi nodo.\n");
 #endif
                 sem_post(&(me->sem_contador_procesos_max_SC));
-                sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-                if (me->contador_anul_pagos_pendientes > 0)
+                if (me->contador_reservas_admin_pendientes > 0)
                 {
-                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_post(&(me->sem_contador_reservas_admin_pendientes));
                     sem_wait(&(me->sem_atendidas));
                     sem_wait(&(me->sem_peticiones));
                     me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
@@ -246,7 +237,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+                    sem_post(&(me->sem_contador_reservas_admin_pendientes));
                 }
                 send_testigo(mi_id, me);
                 sem_wait(&(me->sem_dentro));
@@ -259,8 +250,8 @@ int main(int argc, char *argv[])
             else
             {
                 sem_post(&(me->sem_contador_procesos_max_SC));
-                sem_post(&(me->sem_contador_anul_pagos_pendientes));
-                sem_post(&(me->sem_anul_pagos_pend));
+                sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                sem_post(&(me->sem_reser_admin_pend));
             }
         }
     } // Si no hay nadie me voy
