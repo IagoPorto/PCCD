@@ -24,21 +24,26 @@ int main(int argc, char *argv[])
     printf("RESERVAS --> Hola\n");
 #endif
 
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
+    printf("las reservas pendientes son: %d\n", me->contador_reservas_admin_pendientes);
+    sem_post(&(me->sem_contador_reservas_admin_pendientes));
+
     sem_wait(&(me->sem_prioridad_maxima));
     if (me->prioridad_maxima < ADMIN_RESER)
     {
         me->prioridad_maxima = ADMIN_RESER; // establecemos la prioridad máxima
     }
+    printf("la prio max del nodo es: %d\n", me->prioridad_maxima);
 
     sem_wait(&(me->sem_tengo_que_pedir_testigo));
     sem_wait(&(me->sem_testigo));
-    if (me->tengo_que_pedir_testigo || (me->prioridad_maxima < ADMIN_RESER && !me->testigo))
+    if (me->tengo_que_pedir_testigo || (me->contador_reservas_admin_pendientes == 1 && me->prioridad_maxima > ADMIN_RESER))
     { // Rama de pedir testigo
         sem_post(&(me->sem_testigo));
 #ifdef __PRINT_PROCESO
         printf("RESERVAS --> Tengo que pedir el testigo\n");
 #endif
-        me->prioridad_maxima = ADMIN_RESER; // establecemos la prioridad máxima
         sem_post(&(me->sem_prioridad_maxima));
         me->tengo_que_pedir_testigo = false;
         sem_post(&(me->sem_tengo_que_pedir_testigo));
@@ -87,9 +92,7 @@ int main(int argc, char *argv[])
             }
         }
         // ACABAMOS CON EL ENVIO DE PETICIONES AHORA ME TOCA ESPERAR.
-        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-        me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
-        sem_post(&(me->sem_contador_reservas_admin_pendientes));
+
         sem_wait(&(me->sem_reser_admin_pend));
         sem_wait(&(me->sem_contador_reservas_admin_pendientes));
         me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
@@ -110,9 +113,6 @@ int main(int argc, char *argv[])
 #endif
             sem_post(&(me->sem_dentro));
             sem_post(&(me->sem_testigo));
-            sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-            me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
-            sem_post(&(me->sem_contador_reservas_admin_pendientes));
             sem_wait(&(me->sem_reser_admin_pend));
             sem_wait(&(me->sem_contador_reservas_admin_pendientes));
             me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;

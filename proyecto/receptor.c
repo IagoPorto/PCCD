@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
                 {
                     sem_wait(&(me->sem_prioridad_max_otro_nodo));
                     me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j);
+                    printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
                 }
             }
