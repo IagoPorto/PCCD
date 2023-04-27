@@ -24,8 +24,13 @@ int main(int argc, char *argv[])
     printf("RESERVAS --> Hola\n");
 #endif
 
-    sem_wait(&(me->sem_tengo_que_pedir_testigo));
     sem_wait(&(me->sem_prioridad_maxima));
+    if (me->prioridad_maxima < ADMIN_RESER)
+    {
+        me->prioridad_maxima = ADMIN_RESER; // establecemos la prioridad máxima
+    }
+
+    sem_wait(&(me->sem_tengo_que_pedir_testigo));
     sem_wait(&(me->sem_testigo));
     if (me->tengo_que_pedir_testigo || (me->prioridad_maxima < ADMIN_RESER && !me->testigo))
     { // Rama de pedir testigo
