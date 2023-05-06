@@ -1,0 +1,8 @@
+sem_wait(&(me->sem_atendidas));
+sem_wait(&(me->sem_peticiones));
+me->atendidas[mi_id - 1][PAGOS_ANUL - 1] = me->peticiones[mi_id - 1][PAGOS_ANUL - 1];
+#ifdef __DEBUG
+printf("\tDEBUG --> atendidas %d, peticiones %d.\n",me->atendidas[mi_id - 1][PAGOS_ANUL - 1], me->peticiones[mi_id - 1][PAGOS_ANUL - 1]);
+#endif
+sem_post(&(me->sem_atendidas));
+sem_post(&(me->sem_peticiones));
