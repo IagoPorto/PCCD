@@ -100,15 +100,11 @@ int main(int argc, char *argv[]){
     sem_post(&(me->sem_contador_anul_pagos_pendientes));
     set_prioridad_max(me);
 
-    sem_wait(&(me->sem_tengo_que_enviar_testigo));
-    sem_wait(&(me->sem_contador_procesos_max_SC));
-    if (me->tengo_que_enviar_testigo && (me->contador_procesos_max_SC == EVITAR_RETECION_EM)){ // TENGO QUE ENVIAR EL TESTIGO
-        #ifdef __PRINT_PROCESO//esto está mal
-        printf("PAGOS --> La prioridad maxima está en otro nodo, tengo que enviar el testigo.\n");
-        #endif
-        me->tengo_que_enviar_testigo = false;
-        sem_post(&(me->sem_tengo_que_enviar_testigo));
-        sem_post(&(me->sem_contador_procesos_max_SC));
+    sem_wait(&(me->sem_prioridad_max_otro_nodo));
+    sem_wait(&(me->sem_prioridad_maxima));
+    if(me->prioridad_max_otro_nodo > me->prioridad_maxima){//prioridad máxima en otro nodo
+        sem_post(&(me->sem_prioridad_max_otro_nodo));
+        sem_post(&(me->sem_prioridad_maxima));
         sem_wait(&(me->sem_turno_PA));
         me->turno_PA = false;
         sem_post(&(me->sem_turno_PA));
@@ -119,83 +115,10 @@ int main(int argc, char *argv[]){
         sem_wait(&(me->sem_dentro));
         me->dentro = false;
         sem_post(&(me->sem_dentro));
-    }else{//NO TENGO QUE ENVIAR EL TESTIGO
-        sem_post(&(me->sem_contador_procesos_max_SC));
-        sem_post(&(me->sem_tengo_que_enviar_testigo));
-        sem_wait(&(me->sem_prioridad_max_otro_nodo));
-        sem_wait(&(me->sem_prioridad_maxima));
-        if (me->prioridad_max_otro_nodo < me->prioridad_maxima){ // Prioridad maxima en mi nodo
-            #ifdef __PRINT_PROCESO
-            printf("PAGOS --> la prioridad maxima está en mi nodo.\n");
-            #endif
+    }else{
+        if((me->prioridad_max_otro_nodo == me->prioridad_maxima) && me->prioridad_max_otro_nodo != 0){
             sem_post(&(me->sem_prioridad_max_otro_nodo));
-            #ifdef __DEBUG
-            printf("DEBUG: La prioridad max de mi nodo es %i y PAGOS_ANUL es %i.\n", me->prioridad_maxima, PAGOS_ANUL);
-            #endif
-            if (me->prioridad_maxima == PAGOS_ANUL){ // La prioridad mas alta de mi nodo es pagos_anul
-            
-                #ifdef __PRINT_PROCESO
-                printf("PAGOS --> le doy paso a mi compañero.\n");
-                #endif
-                sem_post(&(me->sem_prioridad_maxima));
-                sem_post(&me->sem_anul_pagos_pend);
-            }else{
-                if (me->prioridad_maxima == ADMIN_RESER){ // La prioridad mas alta de mi nodo es reservas_admin
-                
-                    #ifdef __PRINT_PROCESO
-                    printf("PAGOS --> le doy paso a admin_res.\n");
-                    #endif
-                    sem_post(&(me->sem_prioridad_maxima));
-                    sem_wait(&(me->sem_turno_PA));
-                    me->turno_PA = false;
-                    sem_post(&(me->sem_turno_PA));
-                    sem_wait(&(me->sem_turno_RA));
-                    me->turno_PA = true;
-                    sem_post(&(me->sem_turno_RA));
-                    sem_wait(&(me->sem_atendidas));
-                    sem_wait(&(me->sem_peticiones));
-                    me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
-                    #ifdef __DEBUG
-                    printf("\tDEBUG --> atendidas %d, peticiones %d.\n",me->atendidas[mi_id - 1][ADMIN_RESER - 1], me->peticiones[mi_id - 1][ADMIN_RESER - 1]);
-                    #endif
-                    sem_post(&(me->sem_atendidas));
-                    sem_post(&(me->sem_peticiones));
-                    sem_wait(&(me->sem_contador_procesos_max_SC));
-                    me->contador_procesos_max_SC = 0;
-                    sem_post(&(me->sem_contador_procesos_max_SC));
-                    sem_post(&(me->sem_reser_admin_pend));
-                }else{ // La prioridad mas alta de mi nodo es consultas
-                
-                    #ifdef __PRINT_PROCESO
-                    printf("PAGOS --> le doy paso a consultas.\n");
-                    #endif
-                    sem_post(&(me->sem_prioridad_maxima));
-                    sem_wait(&(me->sem_contador_procesos_max_SC));
-                    me->contador_procesos_max_SC = 0;
-                    sem_post(&(me->sem_contador_procesos_max_SC));
-                    sem_wait(&(me->sem_turno_PA));
-                    me->turno_PA = false;
-                    sem_post(&(me->sem_turno_PA));
-                    sem_wait(&(me->sem_turno_C));
-                    me->turno_PA = true;
-                    sem_post(&(me->sem_turno_C));
-                    sem_wait(&(me->sem_atendidas));
-                    sem_wait(&(me->sem_peticiones));
-                    me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
-                    #ifdef __DEBUG
-                    printf("\tDEBUG --> atendidas %d, peticiones %d.\n",me->atendidas[mi_id - 1][CONSULTAS - 1], me->peticiones[mi_id - 1][CONSULTAS - 1]);
-                    #endif
-                    sem_post(&(me->sem_atendidas));
-                    sem_post(&(me->sem_peticiones));
-                    // FALTA PONER EL CASO DE CONSULTAS
-                }
-            }
-        }else{ // misma prioridad mi nodo y otro nodo
-            #ifdef __PRINT_PROCESO
-            printf("PAGOS --> Mi nodo y otro nodo tenemos la misma prioridad.\n");
-                #endif
             sem_post(&(me->sem_prioridad_maxima));
-            sem_post(&(me->sem_prioridad_max_otro_nodo));
             sem_wait(&(me->sem_contador_procesos_max_SC));
             sem_wait(&(me->sem_contador_anul_pagos_pendientes));
             sem_wait(&(me->sem_prioridad_max_otro_nodo));
@@ -226,7 +149,72 @@ int main(int argc, char *argv[]){
                 sem_post(&(me->sem_contador_anul_pagos_pendientes));
                 sem_post(&(me->sem_anul_pagos_pend));
             }
+        }else{
+            sem_post(&(me->sem_prioridad_max_otro_nodo));
+            if(me->prioridad_maxima != 0){
+                if (me->prioridad_maxima == PAGOS_ANUL){ // La prioridad mas alta de mi nodo es pagos_anul
+            
+                    #ifdef __PRINT_PROCESO
+                    printf("PAGOS --> le doy paso a mi compañero.\n");
+                    #endif
+                    sem_post(&(me->sem_prioridad_maxima));
+                    sem_post(&me->sem_anul_pagos_pend);
+                }else{
+                    if (me->prioridad_maxima == ADMIN_RESER){ // La prioridad mas alta de mi nodo es reservas_admin
+                    
+                        #ifdef __PRINT_PROCESO
+                        printf("PAGOS --> le doy paso a admin_res.\n");
+                        #endif
+                        sem_post(&(me->sem_prioridad_maxima));
+                        sem_wait(&(me->sem_turno_PA));
+                        me->turno_PA = false;
+                        sem_post(&(me->sem_turno_PA));
+                        sem_wait(&(me->sem_turno_RA));
+                        me->turno_PA = true;
+                        sem_post(&(me->sem_turno_RA));
+                        sem_wait(&(me->sem_atendidas));
+                        sem_wait(&(me->sem_peticiones));
+                        me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
+                        #ifdef __DEBUG
+                        printf("\tDEBUG --> atendidas %d, peticiones %d.\n",me->atendidas[mi_id - 1][ADMIN_RESER - 1], me->peticiones[mi_id - 1][ADMIN_RESER - 1]);
+                        #endif
+                        sem_post(&(me->sem_atendidas));
+                        sem_post(&(me->sem_peticiones));
+                        sem_wait(&(me->sem_contador_procesos_max_SC));
+                        me->contador_procesos_max_SC = 0;
+                        sem_post(&(me->sem_contador_procesos_max_SC));
+                        sem_post(&(me->sem_reser_admin_pend));
+                    }else{ // La prioridad mas alta de mi nodo es consultas
+                    
+                        #ifdef __PRINT_PROCESO
+                        printf("PAGOS --> le doy paso a consultas.\n");
+                        #endif
+                        sem_post(&(me->sem_prioridad_maxima));
+                        sem_wait(&(me->sem_contador_procesos_max_SC));
+                        me->contador_procesos_max_SC = 0;
+                        sem_post(&(me->sem_contador_procesos_max_SC));
+                        sem_wait(&(me->sem_turno_PA));
+                        me->turno_PA = false;
+                        sem_post(&(me->sem_turno_PA));
+                        sem_wait(&(me->sem_turno_C));
+                        me->turno_PA = true;
+                        sem_post(&(me->sem_turno_C));
+                        sem_wait(&(me->sem_atendidas));
+                        sem_wait(&(me->sem_peticiones));
+                        me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
+                        #ifdef __DEBUG
+                        printf("\tDEBUG --> atendidas %d, peticiones %d.\n",me->atendidas[mi_id - 1][CONSULTAS - 1], me->peticiones[mi_id - 1][CONSULTAS - 1]);
+                        #endif
+                        sem_post(&(me->sem_atendidas));
+                        sem_post(&(me->sem_peticiones));
+                        // FALTA PONER EL CASO DE CONSULTAS
+                    }
+                }
+            }else{
+                sem_post(&(me->sem_prioridad_maxima));
+            }
         }
-    } // Si no hay nadie me voy
+    }
+    
     return 0;
 }

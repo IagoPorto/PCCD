@@ -136,7 +136,6 @@ void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
       for (j = 0; j < P; j++){
         sem_wait(&me->sem_atendidas);
         msg_testigo.atendidas[i][j] = me->atendidas[i][j];
-        printf("Atendidas: %d, testigo: %d\n",me->atendidas[i][j],msg_testigo.atendidas[i][j]);
         sem_post(&me->sem_atendidas);
       }
     }
