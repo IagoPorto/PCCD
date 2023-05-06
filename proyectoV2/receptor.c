@@ -165,14 +165,17 @@ int main(int argc, char *argv[]){
             sem_wait(&(me->sem_peticiones));
             // actualizar vector de atendidas y saber cual es la prioridad máxima de otro nodo
             for (i = 0; i < N; i++){
-                for (j = 0; j < P; j++){
-                    me->atendidas[i][j] = mensaje_rx.atendidas[i][j];
-                
-                    if (me->atendidas[i][j] < me->peticiones[i][j]){
-                        sem_wait(&(me->sem_prioridad_max_otro_nodo));
-                        me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j + 1);
-                        printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
-                        sem_post(&(me->sem_prioridad_max_otro_nodo));
+                if(mi_id != i + 1){
+                    for (j = 0; j < P; j++){
+                        me->atendidas[i][j] = mensaje_rx.atendidas[i][j];
+                    
+                        if (me->atendidas[i][j] < me->peticiones[i][j]){
+                            sem_wait(&(me->sem_prioridad_max_otro_nodo));
+                            me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j + 1);
+                            printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
+                            printf("atendidas: %d; peticiones: %d\n", me->atendidas[i][j], me->peticiones[i][j]);
+                            sem_post(&(me->sem_prioridad_max_otro_nodo));
+                        }
                     }
                 }
             }
@@ -237,6 +240,16 @@ int main(int argc, char *argv[]){
                         #endif
                         sem_post(&(me->sem_atendidas));
                         sem_post(&(me->sem_peticiones));
+                        sem_wait(&(me->sem_contador_procesos_max_SC));
+                        sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+                        if((me->contador_reservas_admin_pendientes + me->contador_procesos_max_SC - EVITAR_RETECION_EM) > 0){
+                            sem_post(&(me->sem_contador_procesos_max_SC));
+                            sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                            send_peticiones(me, mi_id, ADMIN_RESER);
+                        }else{
+                            sem_post(&(me->sem_contador_procesos_max_SC));
+                            sem_post(&(me->sem_contador_reservas_admin_pendientes));
+                        }
                         sem_post(&(me->sem_reser_admin_pend));
                     }else{
                         sem_post(&(me->sem_contador_reservas_admin_pendientes));

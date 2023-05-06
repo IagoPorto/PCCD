@@ -170,7 +170,7 @@ int main(int argc, char *argv[]){
                         me->turno_PA = false;
                         sem_post(&(me->sem_turno_PA));
                         sem_wait(&(me->sem_turno_RA));
-                        me->turno_PA = true;
+                        me->turno_RA = true;
                         sem_post(&(me->sem_turno_RA));
                         sem_wait(&(me->sem_atendidas));
                         sem_wait(&(me->sem_peticiones));
