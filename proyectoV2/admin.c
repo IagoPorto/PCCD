@@ -83,6 +83,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("ADMIN --> VOY A LA SCEM .\n");
     #endif
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
+    sem_post(&(me->sem_contador_reservas_admin_pendientes));
     sem_wait(&(me->sem_dentro));
     me->dentro = true;
     sem_post(&(me->sem_dentro));
@@ -93,9 +96,7 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("ADMIN --> salgo de la SCEM.\n");
     #endif
-    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-    me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
-    sem_post(&(me->sem_contador_reservas_admin_pendientes));
+    
     set_prioridad_max(me);
 
     sem_wait(&(me->sem_prioridad_max_otro_nodo));

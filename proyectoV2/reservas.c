@@ -27,6 +27,8 @@ int main(int argc, char *argv[]){
     sem_wait(&(me->sem_turno_RA));
     sem_wait(&(me->sem_turno));
     sem_wait(&(me->sem_contador_procesos_max_SC));
+
+    printf("DEBUGGGGG: testigo %i; turnoRA: %i; turno: %i; contadorMAX: %d; contadorRA: %d\n", me->testigo, me->turno_RA, me->turno, me->contador_procesos_max_SC, me->contador_reservas_admin_pendientes);
     
     if ((!me->testigo && (me-> contador_reservas_admin_pendientes == 1)) || 
          (me->testigo && me->turno_RA && (me->contador_reservas_admin_pendientes + me->contador_procesos_max_SC - EVITAR_RETECION_EM) == 1)
@@ -83,6 +85,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("RESERVAS --> VOY A LA SCEM .\n");
     #endif
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
+    sem_post(&(me->sem_contador_reservas_admin_pendientes));
     sem_wait(&(me->sem_dentro));
     me->dentro = true;
     sem_post(&(me->sem_dentro));
@@ -93,9 +98,7 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("RESERVAS --> salgo de la SCEM.\n");
     #endif
-    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-    me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
-    sem_post(&(me->sem_contador_reservas_admin_pendientes));
+    
     set_prioridad_max(me);
 
     sem_wait(&(me->sem_prioridad_max_otro_nodo));

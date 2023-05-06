@@ -226,6 +226,12 @@ int main(int argc, char *argv[]){
                         sem_post(&(me->sem_contador_procesos_max_SC));
                         sem_post(&(me->sem_contador_anul_pagos_pendientes));
                     }
+                    sem_wait(&(me->sem_turno_PA));
+                    me->turno_PA = true;
+                    sem_post(&(me->sem_turno_PA));
+                    sem_wait(&(me->sem_turno));
+                    me->turno = true;
+                    sem_post(&(me->sem_turno));
                     sem_post(&(me->sem_anul_pagos_pend));
                 }else{
                     sem_post(&(me->sem_contador_anul_pagos_pendientes));
@@ -250,6 +256,12 @@ int main(int argc, char *argv[]){
                             sem_post(&(me->sem_contador_procesos_max_SC));
                             sem_post(&(me->sem_contador_reservas_admin_pendientes));
                         }
+                        sem_wait(&(me->sem_turno_RA));
+                        me->turno_RA = true;
+                        sem_post(&(me->sem_turno_RA));
+                        sem_wait(&(me->sem_turno));
+                        me->turno = true;
+                        sem_post(&(me->sem_turno));
                         sem_post(&(me->sem_reser_admin_pend));
                     }else{
                         sem_post(&(me->sem_contador_reservas_admin_pendientes));
@@ -261,6 +273,12 @@ int main(int argc, char *argv[]){
                         #endif
                         sem_post(&(me->sem_atendidas));
                         sem_post(&(me->sem_peticiones));
+                        sem_wait(&(me->sem_turno_C));
+                        me->turno_C = true;
+                        sem_post(&(me->sem_turno_C));
+                        sem_wait(&(me->sem_turno));
+                        me->turno = true;
+                        sem_post(&(me->sem_turno));
                         sem_post(&(me->sem_consult_pend));
                     }
                 }
