@@ -27,10 +27,8 @@ int main(int argc, char *argv[]){
         printf("Soy el nodo 1\n");
         #endif
         me->testigo = true;
-        me->tengo_que_pedir_testigo = false;
     }else{
         me->testigo = false;
-        me->tengo_que_pedir_testigo = true;
     }
 
     for (i = 0; i < N; i++){
@@ -42,7 +40,6 @@ int main(int argc, char *argv[]){
 
     me->dentro = false;
     me->mi_peticion = 0;
-    me->tengo_que_enviar_testigo = false;
     me->contador_anul_pagos_pendientes = 0;
     me->contador_consultas_pendientes = 0;
     me->contador_procesos_max_SC = 0;
@@ -64,8 +61,6 @@ int main(int argc, char *argv[]){
     sem_init(&(me->sem_contador_consultas_pendientes), 1, 1);
     sem_init(&(me->sem_mi_peticion), 1, 1);
     sem_init(&(me->sem_testigo), 1, 1);
-    sem_init(&(me->sem_tengo_que_enviar_testigo), 1, 1);
-    sem_init(&(me->sem_tengo_que_pedir_testigo), 1, 1);
     sem_init(&(me->sem_prioridad_maxima), 1, 1);
     sem_init(&(me->sem_contador_procesos_max_SC), 1, 1);
     sem_init(&(me->sem_prioridad_max_otro_nodo), 1, 1);
@@ -129,22 +124,10 @@ int main(int argc, char *argv[]){
                     #ifdef __PRINT_RX
                     printf("RECEPTOR: EL NODO %i TIENE UNA PRIORIDAD MAS ALTA\n", mensaje_rx.id);
                     #endif
-                    sem_wait(&(me->sem_tengo_que_pedir_testigo));
-                    me->tengo_que_pedir_testigo = true;
-                    sem_post(&(me->sem_tengo_que_pedir_testigo));
-                    sem_wait(&(me->sem_tengo_que_enviar_testigo));
-                    me->tengo_que_enviar_testigo = true;
-                    sem_post(&(me->sem_tengo_que_enviar_testigo));
                 }else{
                     if (me->prioridad_maxima == 0){
                         sem_post(&(me->sem_prioridad_maxima));
                         send_testigo(mi_id, me);
-                        sem_wait(&(me->sem_tengo_que_pedir_testigo));
-                        me->tengo_que_pedir_testigo = true;
-                        sem_post(&(me->sem_tengo_que_pedir_testigo));
-                        sem_wait(&(me->sem_tengo_que_enviar_testigo));
-                        me->tengo_que_enviar_testigo = false;
-                        sem_post(&(me->sem_tengo_que_enviar_testigo));
                     }else{
                         sem_post(&(me->sem_prioridad_maxima));
                     }
@@ -195,11 +178,6 @@ int main(int argc, char *argv[]){
                 sem_post(&(me->sem_prioridad_maxima));
                 send_testigo(mi_id, me);
             }else{
-                if(me->prioridad_max_otro_nodo == me->prioridad_maxima){
-                    sem_wait(&(me->sem_tengo_que_enviar_testigo));
-                    me->tengo_que_enviar_testigo = true;
-                    sem_post(&(me->sem_tengo_que_enviar_testigo));
-                }
                 sem_post(&(me->sem_prioridad_max_otro_nodo));
                 sem_post(&(me->sem_prioridad_maxima));
                 sem_wait(&(me->sem_prioridad_max_otro_nodo));
