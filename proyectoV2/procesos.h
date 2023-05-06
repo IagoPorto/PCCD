@@ -27,7 +27,7 @@
 #define ADMIN_RESER 2
 #define CONSULTAS 1
 
-#define EVITAR_RETECION_EM 2 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
+#define EVITAR_RETECION_EM 1 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
 
 struct msgbuf_mensaje{
 
