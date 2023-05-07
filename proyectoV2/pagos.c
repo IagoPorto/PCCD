@@ -198,7 +198,7 @@ int main(int argc, char *argv[]){
                         me->turno_PA = false;
                         sem_post(&(me->sem_turno_PA));
                         sem_wait(&(me->sem_turno_C));
-                        me->turno_PA = true;
+                        me->turno_C = true;
                         sem_post(&(me->sem_turno_C));
                         sem_wait(&(me->sem_atendidas));
                         sem_wait(&(me->sem_peticiones));
@@ -218,6 +218,12 @@ int main(int argc, char *argv[]){
                 me-> atendidas[mi_id - 1][PAGOS_ANUL - 1] = me->peticiones[mi_id - 1][PAGOS_ANUL - 1];
                 sem_post(&(me->sem_atendidas));
                 sem_post(&(me->sem_peticiones));
+                sem_wait(&(me->sem_turno_PA));
+                me->turno_PA = false;
+                sem_post(&(me->sem_turno_PA));
+                sem_wait(&(me->sem_turno));
+                me->turno = false;
+                sem_post(&(me->sem_turno));
             }
         }
     }

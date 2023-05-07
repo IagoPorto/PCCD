@@ -7,6 +7,6 @@ gcc -Wall pagos.c -o pagos -lpthread
 gcc -Wall receptor.c -o receptor -lpthread
 gcc -Wall anulaciones.c -o anulaciones -lpthread
 
-echo "Todo compilado, si hay errores te jodes."
+echo "Todo compilado, dale."
 
 exit

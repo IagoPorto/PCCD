@@ -219,6 +219,12 @@ int main(int argc, char *argv[]){
                 me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
                 sem_post(&(me->sem_atendidas));
                 sem_post(&(me->sem_peticiones));
+                sem_wait(&(me->sem_turno_RA));
+                me->turno_RA = false;
+                sem_post(&(me->sem_turno_RA));
+                sem_wait(&(me->sem_turno));
+                me->turno = false;
+                sem_post(&(me->sem_turno));
             }
         }
     }
