@@ -214,6 +214,11 @@ int main(int argc, char *argv[]){
                 }
             }else{
                 sem_post(&(me->sem_prioridad_maxima));
+                sem_wait(&(me->sem_atendidas));
+                sem_wait(&(me->sem_peticiones));
+                me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
+                sem_post(&(me->sem_atendidas));
+                sem_post(&(me->sem_peticiones));
             }
         }
     }
