@@ -57,38 +57,56 @@ int main(int argc, char *argv[]){
         #ifdef __PRINT_PROCESO
         printf("CONSULTAS --> no tengo que pedir el testigo.\n");
         #endif
-        sem_wait(&(me->sem_dentro));
-        if ((me->dentro) || !(me->testigo)){ // SI HAY ALGUIEN DENTRO O NO TENGO EL TESTIGO, ESPERO
-            sem_post(&(me->sem_dentro));
+        sem_wait(&(me->sem_testigo));
+        sem_wait(&(me->sem_turno_C));
+        if (!(me->testigo) || (!me->turno_C)){ // SI HAY ALGUIEN DENTRO O NO TENGO EL TESTIGO, ESPERO
             sem_post(&(me->sem_testigo));
-            #ifdef __PRINT_PROCESO
-            printf("CONSULTAS --> tengo que esperar porque no tengo permiso.\n");
-            #endif
-            sem_wait(&(me->sem_anul_pagos_pend));
+            sem_post(&(me->sem_turno_C));
+            sem_wait(&(me->sem_contador_consultas_pendientes));
+            if(me->contador_consultas_pendientes == 1){
+                sem_post(&(me->sem_contador_consultas_pendientes));
+                set_prioridad_max(me);
+                sem_wait(&(me->sem_prioridad_maxima));
+                sem_wait(&(me->sem_testigo));
+                if(me->testigo && (me->prioridad_maxima == CONSULTAS)){
+                    sem_post(&(me->sem_prioridad_maxima));
+                    sem_post(&(me->sem_testigo));
+                    sem_wait(&(me->sem_turno_C));
+                    me->turno_C = true;
+                    sem_post(&(me->sem_turno_C));
+                    sem_wait(&(me->sem_turno));
+                    me->turno = true;
+                    sem_post(&(me->sem_turno));
+                    sem_wait(&(me->sem_dentro));
+                    me->dentro = true;
+                    sem_post(&(me->sem_dentro));
+                }else{
+                    sem_post(&(me->sem_prioridad_maxima));
+                    sem_post(&(me->sem_testigo));
+                    #ifdef __PRINT_PROCESO
+                    printf("CONSULTAS --> tengo que esperar porque no tengo permiso.\n");
+                    #endif
+                    sem_wait(&(me->sem_consult_pend));
+                }
+            }else{
+                sem_post(&(me->sem_contador_consultas_pendientes));
+                #ifdef __PRINT_PROCESO
+                printf("CONSULTAS --> tengo que esperar porque no tengo permiso.\n");
+                #endif
+                sem_wait(&(me->sem_consult_pend));
+            }
+            
+            
         }else{ // SI NO HAY NADIE DENTRO
-            sem_post(&(me->sem_dentro));
             sem_post(&(me->sem_testigo));
-            sem_wait(&(me->sem_prioridad_maxima));
-            me->prioridad_maxima = PAGOS_ANUL;
-            sem_post(&(me->sem_prioridad_maxima));
-            sem_wait(&(me->sem_turno_PA));
-            me->turno_PA = true;
-            sem_post(&(me->sem_turno_PA));
-            sem_wait(&(me->sem_turno));
-            me->turno = true;
-            sem_post(&(me->sem_turno));
+            sem_post(&(me->sem_turno_C));
         }
     }
-    // SECCIÓN CRÍTICA DE EXCLUSIÓN MUTUA BABY
+    // SECCIÓN CRÍTICA DE CONCURRENCIA ENTRE CONSULTAS BABY
     #ifdef __PRINT_PROCESO
-    printf("CONSULTAS --> VOY A LA SCEM .\n");
+    printf("CONSULTAS --> VOY A LA SC CONCURRENTE DE CONSULTAS .\n");
     #endif
-    sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-    me->contador_anul_pagos_pendientes = me->contador_anul_pagos_pendientes - 1;
-    sem_post(&(me->sem_contador_anul_pagos_pendientes));
-    sem_wait(&(me->sem_dentro));
-    me->dentro = true;
-    sem_post(&(me->sem_dentro));
+    
     sem_wait(&(me->sem_contador_procesos_max_SC));
     me->contador_procesos_max_SC = me->contador_procesos_max_SC + 1;
     sem_post(&(me->sem_contador_procesos_max_SC));
@@ -96,7 +114,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("CONSULTAS --> salgo de la SCEM.\n");
     #endif
-    
+    sem_wait(&(me->sem_contador_consultas_pendientes));
+    me->contador_consultas_pendientes = me->contador_consultas_pendientes - 1;
+    sem_post(&(me->sem_contador_consultas_pendientes));
     set_prioridad_max(me);
 
     sem_wait(&(me->sem_prioridad_max_otro_nodo));
