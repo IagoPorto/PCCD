@@ -88,7 +88,26 @@ void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
   sem_wait(&(me->sem_contador_procesos_max_SC));
   me->contador_procesos_max_SC = 0;
   sem_post(&(me->sem_contador_procesos_max_SC));
-
+  
+  sem_wait(&(me->sem_atendidas));
+  sem_wait(&(me->sem_peticiones));
+  sem_wait(&me->sem_contador_anul_pagos_pendientes);
+  if(me->contador_anul_pagos_pendientes == 0){
+    me->atendidas[mi_id - 1][PAGOS_ANUL - 1] = me->peticiones[mi_id - 1][PAGOS_ANUL - 1];
+  }
+  sem_post(&(me->sem_contador_anul_pagos_pendientes));
+  sem_wait(&me->sem_contador_reservas_admin_pendientes);
+  if(me->contador_reservas_admin_pendientes == 0){
+    me->atendidas[mi_id - 1][ADMIN_RESER - 1] = me->peticiones[mi_id - 1][ADMIN_RESER - 1];
+  }
+  sem_post(&(me->sem_contador_reservas_admin_pendientes));
+  sem_wait(&me->sem_contador_consultas_pendientes);
+  if(me->contador_consultas_pendientes == 0){
+    me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
+  }
+  sem_post(&(me->sem_contador_consultas_pendientes));
+  sem_post(&(me->sem_atendidas));
+  sem_post(&(me->sem_peticiones));
   // COMPROBACIÓN DE SI HAY ALGUIEN ESPERANDO
   for (j = P - 1; j > -1; j--){
     id_buscar = id_buscar_prima;
