@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
         me->nodos_con_consultas[i] = 0;
     }
     me->testigos_recogidos = false;
+    me->id_nodo_master = 0;
     me->dentro_C = 0;
     me->nodo_master = false;
     me->dentro = false;
@@ -56,6 +57,7 @@ int main(int argc, char *argv[]){
     // inicialización de semáforos
     // inicialización de semáforos para consultas concurrentes
     sem_init(&(me->sem_dentro_C), 1, 1);
+    sem_init(&(me->sem_id_nodo_master), 1, 1);
     sem_init(&(me->sem_nodos_con_consultas), 1, 1);
     sem_init(&(me->sem_nodo_master), 1, 1);
     sem_init(&(me->sem_testigos_recogidos), 1, 1);
