@@ -31,8 +31,8 @@
 
 struct msgbuf_mensaje{
 
-  long msg_type; // TIPO 1 --> SOLICITUD      //TIPO 2 --> TESTIGO    //TIPO 3 --> TESTIGO CONSULTAS    //TIPO 4 --> RECIBIR TESTIGO CONSULTAS
-  int id;
+  long msg_type; // TIPO 1 --> SOLICITUD      //TIPO 2 --> TESTIGO    //TIPO 3 --> ENVIAR TESTIGO CONSULTAS    //TIPO 4 --> RECIBIR TESTIGO CONSULTAS
+  int id;                                                               
   int peticion;
   int prioridad;
   int atendidas[N][P];
@@ -44,10 +44,9 @@ typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   //Variables para consultas concurrentes
   int dentro_C;
   bool nodo_master, testigos_recogidos;
-  int nodos_con_consultas[N];
   int id_nodo_master;
 
-  sem_t sem_dentro_C, sem_nodo_master, sem_nodos_con_consultas,
+  sem_t sem_dentro_C, sem_nodo_master,
         sem_testigos_recogidos, sem_id_nodo_master;
 
   // VARIABLES GLOBALES
@@ -134,7 +133,7 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
   }
 }
 
-void send_testigo_consultas(int mi_id, memoria *me){
+void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testigo al nodo falso
 
   int i;
   sem_wait(&(me->sem_nodo_master));
@@ -143,17 +142,10 @@ void send_testigo_consultas(int mi_id, memoria *me){
     sem_wait(&(me->sem_testigos_recogidos));
     me->testigos_recogidos = true;
     sem_post(&(me->sem_testigos_recogidos));
-    sem_wait(&(me->sem_nodos_con_consultas));
-    me->nodos_con_consultas[mi_id - 1] = 0;
-    for(i = 0; i < N; i++){
-      if(me->nodos_con_consultas[i] == 1){
-        sem_wait(&(me->sem_testigos_recogidos));
-        me->testigos_recogidos = false;
-        sem_post(&(me->sem_testigos_recogidos));
-        break;
-      }
-    }
-    sem_post(&(me->sem_nodos_con_consultas));
+    ///
+    ///
+    //
+    //
     send_testigo_consultas_master(mi_id, me);
   }else{//NO SOY EL NODO MASTER
     sem_post(&(me->sem_nodo_master));
