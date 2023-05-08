@@ -36,8 +36,11 @@ int main(int argc, char *argv[]){
             me->atendidas[i][j] = 0;
             me->peticiones[i][j] = 0;
         }
+        me->nodos_con_consultas[i] = 0;
     }
-
+    me->testigos_recogidos = false;
+    me->dentro_C = 0;
+    me->nodo_master = false;
     me->dentro = false;
     me->mi_peticion = 0;
     me->contador_anul_pagos_pendientes = 0;
@@ -51,6 +54,11 @@ int main(int argc, char *argv[]){
     me->turno_C = false;
     me->turno = false;
     // inicialización de semáforos
+    // inicialización de semáforos para consultas concurrentes
+    sem_init(&(me->sem_dentro_C), 1, 1);
+    sem_init(&(me->sem_nodos_con_consultas), 1, 1);
+    sem_init(&(me->sem_nodo_master), 1, 1);
+    sem_init(&(me->sem_testigos_recogidos), 1, 1);
     // inicialización semáforos de paso.
     sem_init(&(me->sem_anul_pagos_pend), 1, 0);
     sem_init(&(me->sem_reser_admin_pend), 1, 0);

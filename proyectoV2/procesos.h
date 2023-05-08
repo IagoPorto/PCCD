@@ -41,11 +41,19 @@ struct msgbuf_mensaje{
 
 typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
 
+  //Variables para consultas concurrentes
+  int dentro_C;
+  bool nodo_master, testigos_recogidos;
+  int nodos_con_consultas[N];
+
+  sem_t sem_dentro_C, sem_nodo_master, sem_nodos_con_consultas,
+        sem_testigos_recogidos;
+
   // VARIABLES GLOBALES
   bool testigo;
   bool dentro;
-
   bool turno_PA, turno_RA, turno_C, turno;
+
 
   int atendidas[N][P], peticiones[N][P];
   int buzones_nodos[N];
@@ -68,6 +76,18 @@ typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   sem_t sem_contador_anul_pagos_pendientes, sem_contador_reservas_admin_pendientes, sem_contador_consultas_pendientes;
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 } memoria;
+
+void send_testigo_consultas(int mi_id, memoria *me){
+  sem_wait(&(me->sem_nodo_master));
+  if(me->nodo_master){
+    sem_post(&(me->sem_nodo_master));
+    sem_wait(&(me->sem_nodos_con_consultas));
+    me->nodos_con_consultas[mi_id - 1] = 0;
+    sem_post(&(me->sem_nodos_con_consultas));
+  }else{
+    sem_post(&(me->sem_nodo_master));
+  }
+}
 
 void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
 
