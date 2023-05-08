@@ -58,6 +58,7 @@ int main(int argc, char *argv[]){
         printf("ADMIN --> no tengo que pedir el testigo.\n");
         #endif
         sem_wait(&(me->sem_dentro));
+        sem_wait(&(me->sem_testigo));
         if ((me->dentro) || !(me->testigo)){ // SI HAY ALGUIEN DENTRO O NO TENGO EL TESTIGO, ESPERO
             sem_post(&(me->sem_dentro));
             sem_post(&(me->sem_testigo));
