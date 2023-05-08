@@ -141,9 +141,7 @@ int main(int argc, char *argv[]){
                 sem_wait(&(me->sem_dentro));
                 me->dentro = false;
                 sem_post(&(me->sem_dentro));
-                sem_wait(&(me->sem_contador_procesos_max_SC));
-                me->contador_procesos_max_SC = 0;
-                sem_post(&(me->sem_contador_procesos_max_SC));
+                
             }else{
                 sem_post(&(me->sem_prioridad_max_otro_nodo));
                 sem_post(&(me->sem_contador_procesos_max_SC));
