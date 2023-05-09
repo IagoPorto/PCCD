@@ -10,6 +10,13 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <stdbool.h>
+
+#define pagos 4
+#define admin 4
+#define anulaciones 4
+#define consultas 4
+#define reservas 4
 
 
 int main(int argc,char *argv[]){
@@ -36,7 +43,7 @@ int main(int argc,char *argv[]){
 
         char variable [15] = {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'};
 
-        for (i = 0, cont = 0; entrada [i] != '='; i++) {
+        for (i = 0, cont = 0; entrada [i] != '='; i++){
 
             variable [i] = entrada [i];
             cont ++;
@@ -96,15 +103,33 @@ int main(int argc,char *argv[]){
 
             for (k = 0; k < numProcesosAux; k++) {
 
+                int cont_lanzados=0;
+                bool pagosok=false,reservasok=false,administracionok=false,consultasok=false,anulacionesok=false;
+
                 int procHijo = fork ();
 
                 if (procHijo == 0) {
 
+                    if(cont_lanzados<pagos && !pagosok){
+                    pagosok=true;
                     execl ("pagos", "pagos",iAux, (char *) NULL);
+                    }
+                    if(cont_lanzados<(pagos+reservas) && !reservasok){
+                    reservasok=true;
                     execl ("reservas", "reservas",iAux, (char *) NULL);
+                    }                    
+                    if(cont_lanzados<(pagos+reservas+admin) && !administracionok){
+                    administracionok=true;
                     execl ("administracion", "administracion",iAux, (char *) NULL);
+                    }
+                    if(cont_lanzados<(pagos+reservas+admin+consultas) && !consultasok){
+                    consultasok=true;
                     execl ("consultas", "consultas",iAux, (char *) NULL);
+                    }
+                    if(cont_lanzados<(pagos+reservas+admin+consultas+anulaciones) && !anulacionesok){
+                    anulacionesok=true;
                     execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
+                    }
 
                     return 0;
                 }
