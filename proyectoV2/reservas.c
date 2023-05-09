@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){
     sem_wait(&(me->sem_contador_procesos_max_SC));
 
     printf("DEBUGGGGG: testigo %i; turnoRA: %i; turno: %i; contadorMAX: %d; contadorRA: %d\n", me->testigo, me->turno_RA, me->turno, me->contador_procesos_max_SC, me->contador_reservas_admin_pendientes);
-    
+    sleep(2);
     if ((!me->testigo && (me-> contador_reservas_admin_pendientes == 1)) || 
          (me->testigo && me->turno_RA && (me->contador_reservas_admin_pendientes + me->contador_procesos_max_SC - EVITAR_RETECION_EM) == 1)
          || (me->testigo && (me-> contador_reservas_admin_pendientes == 1) && !me->turno_RA && me->turno)){ 
@@ -59,6 +59,7 @@ int main(int argc, char *argv[]){
         #ifdef __PRINT_PROCESO
         printf("RESERVAS --> no tengo que pedir el testigo.\n");
         #endif
+        sem_wait(&(me->sem_testigo));
         sem_wait(&(me->sem_dentro));
         if ((me->dentro) || !(me->testigo)){ // SI HAY ALGUIEN DENTRO O NO TENGO EL TESTIGO, ESPERO
             sem_post(&(me->sem_dentro));
