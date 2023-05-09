@@ -23,7 +23,7 @@ int main(int argc,char *argv[]){
 
     if (ficheroIn == NULL) {
 
-        printf ("Error: Fichero de entrada no encontrado. \n\n");
+        printf ("Error:Fichero de entrada no encontrado. \n\n");
         return 0;
     }
 
