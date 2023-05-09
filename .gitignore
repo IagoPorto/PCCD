@@ -9,6 +9,13 @@ proyecto/pagos
 proyecto/reservas
 proyecto/receptor
 proyecto/admin
+proyecto/*.txt
+proyectoV2/consultas
+proyectoV2/anulaciones
+proyectoV2/pagos
+proyectoV2/reservas
+proyectoV2/receptor
+proyectoV2/admin
+proyectoV2/*.txt
 .vscode/*
 .vscode
-proyecto/*.txt
