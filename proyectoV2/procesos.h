@@ -269,11 +269,18 @@ void send_peticiones(memoria *me, int mi_id, int prioridad){
 
 void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
                                                   //el nodo master es el que usa esta función.
-  int i;
+  int i, j;
   struct msgbuf_mensaje msg_testigo;
   msg_testigo.msg_type = (long)3;
   msg_testigo.id = mi_id;
   msg_testigo.id_nodo_master = mi_id;
+  for (i = 0; i < N; i++){
+    for (j = 0; j < P; j++){
+      sem_wait(&me->sem_atendidas);
+      msg_testigo.atendidas[i][j] = me->atendidas[i][j];
+      sem_post(&me->sem_atendidas);
+    }
+  }
   sem_wait(&(me->sem_atendidas));
   sem_wait(&(me->sem_peticiones));
   for(i = 0; i < N; i ++){

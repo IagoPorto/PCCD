@@ -305,8 +305,39 @@ int main(int argc, char *argv[]){
                 //Si nos llega el testigo pero hay mas prioridad lo devolvemos
                 //si no, turno de consultas a 1
                 sem_wait(&(me->sem_prioridad_max_otro_nodo));
-                if(me->prioridad_max_otro_nodo > CONSULTAS){
+                me->prioridad_max_otro_nodo = 0;
+                sem_post(&(me->sem_prioridad_max_otro_nodo));
+                sem_wait(&(me->sem_atendidas));
+                sem_wait(&(me->sem_peticiones));
+                // actualizar vector de atendidas y saber cual es la prioridad máxima de otro nodo
+                for (i = 0; i < N; i++){
+                    if(mi_id != i + 1){
+                        for (j = 0; j < P; j++){
+                            me->atendidas[i][j] = mensaje_rx.atendidas[i][j];
+                        
+                            if (me->atendidas[i][j] < me->peticiones[i][j]){
+                                sem_wait(&(me->sem_prioridad_max_otro_nodo));
+                                me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j + 1);
+                                printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
+                                printf("atendidas: %d; peticiones: %d\n", me->atendidas[i][j], me->peticiones[i][j]);
+                                sem_post(&(me->sem_prioridad_max_otro_nodo));
+                            }
+                        }
+                    }
+                }
+                for(i = 0; i < N; i++){
+                    printf("NODO %d\n", i + 1);
+                    printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
+                    printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+                }
+                sem_post(&(me->sem_atendidas));
+                sem_post(&(me->sem_peticiones));
+                set_prioridad_max(me);
+                sem_wait(&(me->sem_prioridad_max_otro_nodo));
+                sem_wait(&(me->sem_prioridad_maxima));
+                if(me->prioridad_max_otro_nodo > CONSULTAS || me->prioridad_maxima > CONSULTAS){
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
+                    sem_post(&(me->sem_prioridad_maxima));
                     struct msgbuf_mensaje msg_testigo;
                     msg_testigo.msg_type = (long)4;
                     msg_testigo.id = mi_id;
@@ -318,6 +349,7 @@ int main(int argc, char *argv[]){
                     sem_post(&me->sem_buzones_nodos);
                 }else{
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
+                    sem_post(&(me->sem_prioridad_maxima));
                     printf("Voy a dar paso a las consultas\n");
                     sem_wait(&(me->sem_turno_C));
                     me->turno_C = true;
