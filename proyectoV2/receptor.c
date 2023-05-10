@@ -27,8 +27,10 @@ int main(int argc, char *argv[]){
         printf("Soy el nodo 1\n");
         #endif
         me->testigo = true;
+        me->nodo_master = true;
     }else{
         me->testigo = false;
+        me->nodo_master = false;
     }
 
     for (i = 0; i < N; i++){
@@ -41,7 +43,6 @@ int main(int argc, char *argv[]){
     me->testigos_recogidos = false;
     me->id_nodo_master = 0;
     me->dentro_C = 0;
-    me->nodo_master = false;
     me->dentro = false;
     me->mi_peticion = 0;
     me->contador_anul_pagos_pendientes = 0;
@@ -205,6 +206,9 @@ int main(int argc, char *argv[]){
                 }else{
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
                     sem_post(&(me->sem_prioridad_maxima));
+                    sem_wait(&(me->sem_nodo_master));
+                    me->nodo_master = true;
+                    sem_post(&(me->sem_nodo_master));
                     sem_wait(&(me->sem_prioridad_max_otro_nodo));
                     #ifdef __DEBUG
                     printf("!!!DEBUG: La prioridad máxima de otro nodo es: %i\n", me->prioridad_max_otro_nodo);
@@ -296,7 +300,7 @@ int main(int argc, char *argv[]){
                 break;
             case (long)3://Recibimos el testigo para consultas
                 #ifdef __PRINT_RX
-                printf("RECEPTOR: He recibido el testigo CONSULTAS del nodo: %d\n", mensaje_rx.id);
+                printf("RECEPTOR: He recibido el testigo FALSO CONSULTAS del nodo: %d\n", mensaje_rx.id);
                 #endif
                 //Si nos llega el testigo pero hay mas prioridad lo devolvemos
                 //si no, turno de consultas a 1
@@ -314,15 +318,18 @@ int main(int argc, char *argv[]){
                     sem_post(&me->sem_buzones_nodos);
                 }else{
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
+                    printf("Voy a dar paso a las consultas\n");
                     sem_wait(&(me->sem_turno_C));
                     me->turno_C = true;
                     sem_post(&(me->sem_turno_C));
-                    sem_wait(&(me->sem_turno));
-                    me->turno = true;
-                    sem_post(&(me->sem_turno));
-                    sem_wait(&(me->sem_nodo_master));
-                    me->nodo_master = mensaje_rx.id_nodo_master;
-                    sem_post(&(me->sem_nodo_master));
+                    sem_wait(&(me->sem_atendidas));
+                    sem_wait(&(me->sem_peticiones));
+                    me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
+                    sem_post(&(me->sem_atendidas));
+                    sem_post(&(me->sem_peticiones));
+                    sem_wait(&(me->sem_id_nodo_master));
+                    me->id_nodo_master = mensaje_rx.id_nodo_master;
+                    sem_post(&(me->sem_id_nodo_master));
                     sem_wait(&(me->sem_contador_consultas_pendientes));
                     for(i = 0; i < me->contador_consultas_pendientes; i++){
                         printf("consultas pend = %d\n", me->contador_consultas_pendientes);

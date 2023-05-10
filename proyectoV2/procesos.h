@@ -179,6 +179,9 @@ void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
           sem_post(&me->sem_atendidas);
           sem_post(&me->sem_peticiones);
           encontrado = true;
+          sem_wait(&(me->sem_nodo_master));
+          me->nodo_master = false;
+          sem_post(&(me->sem_nodo_master));
           break;
         }else{
           sem_post(&me->sem_peticiones);
@@ -362,6 +365,7 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
     }
     sem_wait(&(me->sem_testigos_recogidos));
     if(me->testigos_recogidos){
+      me->testigos_recogidos = false;
       sem_post(&(me->sem_testigos_recogidos));
       send_testigo_consultas_master(mi_id, me);
     }else{
