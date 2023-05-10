@@ -15,7 +15,7 @@
 
 #define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
 #define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
-#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
+//#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
 #define __DEBUG
 
 #define N 4 // --> nodos
