@@ -286,20 +286,25 @@ void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
       sem_post(&me->sem_atendidas);
     }
   }
-  sem_wait(&(me->sem_atendidas));
-  sem_wait(&(me->sem_peticiones));
+  
   for(i = 0; i < N; i ++){
+    sem_wait(&(me->sem_atendidas));
+    sem_wait(&(me->sem_peticiones));
     if(me->atendidas[i][CONSULTAS - 1] < me->peticiones[i][CONSULTAS - 1]){
       me->atendidas[i][CONSULTAS - 1] = me->peticiones[i][CONSULTAS - 1];
+      sem_post(&(me->sem_atendidas));
+      sem_post(&(me->sem_peticiones));
       sem_wait(&(me->sem_buzones_nodos));
       if (msgsnd(me->buzones_nodos[i], &msg_testigo, sizeof(msg_testigo), 0)){
         printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
       }
       sem_post(&me->sem_buzones_nodos);
+    }else{
+      sem_post(&(me->sem_atendidas));
+      sem_post(&(me->sem_peticiones));
     }
   }
-  sem_post(&(me->sem_atendidas));
-  sem_post(&(me->sem_peticiones));
+  
 }
 
 void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a quien tenga lectores o dar paso a un lector
@@ -309,29 +314,37 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   me->prioridad_max_otro_nodo = 0;
   sem_post(&(me->sem_prioridad_max_otro_nodo));
-  sem_wait(&(me->sem_atendidas));
-  sem_wait(&(me->sem_peticiones));
+  
   // actualizar vector de atendidas y saber cual es la prioridad máxima de otro nodo
   for (i = 0; i < N; i++){
     if(mi_id != i + 1){
       for (j = 0; j < P; j++){
+        sem_wait(&(me->sem_atendidas));
+        sem_wait(&(me->sem_peticiones));
         if (me->atendidas[i][j] < me->peticiones[i][j]){
+          sem_post(&(me->sem_atendidas));
+          sem_post(&(me->sem_peticiones));
           sem_wait(&(me->sem_prioridad_max_otro_nodo));
           me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j + 1);
           printf("prioridad max: %d\n", me->prioridad_max_otro_nodo);
           sem_post(&(me->sem_prioridad_max_otro_nodo));
+        }else{
+          sem_post(&(me->sem_atendidas));
+          sem_post(&(me->sem_peticiones));
         }
       }
     }
   }
   for(i = 0; i < N; i++){
-      sleep(2);
       printf("NODO %d\n", i + 1);
+      sem_wait(&(me->sem_atendidas));
+      sem_wait(&(me->sem_peticiones));
       printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
       printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+      sem_post(&(me->sem_atendidas));
+      sem_post(&(me->sem_peticiones));
   }
-  sem_post(&(me->sem_atendidas));
-  sem_post(&(me->sem_peticiones));
+  
 
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   sem_wait(&(me->sem_prioridad_maxima));
@@ -406,8 +419,6 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
     if(me->testigos_recogidos){
       me->testigos_recogidos = false;
       sem_post(&(me->sem_testigos_recogidos));
-      printf("VOY A LLAMAR A LA FUNCIÓN DE SEND TESTIGO CONSULTAS MASTER\n");
-      sleep(8);
       send_testigo_consultas_master(mi_id, me);
     }else{
       sem_post(&(me->sem_testigos_recogidos));

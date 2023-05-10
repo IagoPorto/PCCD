@@ -42,19 +42,10 @@ int main(int argc, char *argv[]){
         //Enviamos peticiones
         send_peticiones(me, mi_id, CONSULTAS);
         // ACABAMOS CON EL ENVIO DE PETICIONES AHORA ME TOCA ESPERAR.
-        printf("ESpero\n");
+        printf("Espero\n");
         sem_wait(&(me->sem_consult_pend));
-        printf("salgo\n");
-        sem_wait(&(me->sem_atendidas));
-        sem_wait(&(me->sem_peticiones));
-        int i;
-        for(i = 0; i < N; i++){
-            printf("NODO %d\n", i + 1);
-            printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
-            printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
-        }
-        sem_post(&(me->sem_atendidas));
-        sem_post(&(me->sem_peticiones));
+        
+        
     }else{ // NO TENGO QUE PEDIR EL TESTIGO
         sem_post(&(me->sem_testigo));
         sem_post(&(me->sem_turno_C));

@@ -385,7 +385,11 @@ int main(int argc, char *argv[]){
                 sem_wait(&(me->sem_nodos_con_consultas));
                 me->nodos_con_consultas[mensaje_rx.id - 1] = 0;
                 sem_post(&(me->sem_nodos_con_consultas));
-                
+                sem_wait(&(me->sem_atendidas));
+                sem_wait(&(me->sem_peticiones));
+                me->atendidas[mensaje_rx.id - 1][CONSULTAS - 1] = me->peticiones[mensaje_rx.id - 1][CONSULTAS - 1];
+                sem_post(&(me->sem_atendidas));
+                sem_post(&(me->sem_peticiones));
                 sem_wait(&(me->sem_testigos_recogidos));
                 me->testigos_recogidos = true;
                 sem_wait(&(me->sem_nodos_con_consultas));
