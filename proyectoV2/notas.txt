@@ -1,0 +1,10 @@
+sem_wait(&(me->sem_atendidas));
+sem_wait(&(me->sem_peticiones));
+for(i = 0; i < N; i++){
+    sleep(2);
+    printf("NODO %d\n", i + 1);
+    printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
+    printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+}
+sem_post(&(me->sem_atendidas));
+sem_post(&(me->sem_peticiones));

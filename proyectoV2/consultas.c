@@ -45,6 +45,16 @@ int main(int argc, char *argv[]){
         printf("ESpero\n");
         sem_wait(&(me->sem_consult_pend));
         printf("salgo\n");
+        sem_wait(&(me->sem_atendidas));
+        sem_wait(&(me->sem_peticiones));
+        int i;
+        for(i = 0; i < N; i++){
+            printf("NODO %d\n", i + 1);
+            printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
+            printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+        }
+        sem_post(&(me->sem_atendidas));
+        sem_post(&(me->sem_peticiones));
     }else{ // NO TENGO QUE PEDIR EL TESTIGO
         sem_post(&(me->sem_testigo));
         sem_post(&(me->sem_turno_C));
@@ -129,6 +139,7 @@ int main(int argc, char *argv[]){
         #ifdef __PRINT_PROCESO
         printf("CONSULTAS --> soy el último y envio el testigo.\n");
         #endif
+        
         sem_wait(&(me->sem_dentro));
         me->dentro = false;
         sem_post(&(me->sem_dentro));
@@ -149,8 +160,8 @@ int main(int argc, char *argv[]){
         #ifdef __PRINT_PROCESO
         printf("CONSULTAS --> Chao.\n");
         #endif
+        
 
     }
-    
     return 0;
 }
