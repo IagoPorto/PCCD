@@ -89,7 +89,7 @@ int main(int argc,char *argv[]){
 
 
    
-     for (i = 0; i < nNodosAux ; i++) {
+     for (i = 1 ;i < nNodosAux + 1 ; i++) {
 
         char iAux [5];
         sprintf (iAux, "%i", i);
