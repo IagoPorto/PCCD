@@ -39,6 +39,9 @@ int main(int argc, char *argv[]){
         sem_post(&(me->sem_contador_procesos_max_SC));
         sem_post(&(me->sem_turno));
         sem_post(&(me->sem_contador_reservas_admin_pendientes));
+        sem_wait(&(me->sem_turno_C));
+        me->turno_C = false;
+        sem_post(&(me->sem_turno_C));
         set_prioridad_max(me);
         #ifdef __PRINT_PROCESO
         printf("RESERVAS --> Tengo que pedir el testigo\n");

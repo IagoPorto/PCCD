@@ -37,6 +37,9 @@ int main(int argc, char *argv[]){
         sem_post(&(me->sem_contador_procesos_max_SC));
         sem_post(&(me->sem_turno));
         sem_post(&(me->sem_contador_anul_pagos_pendientes));
+        sem_wait(&(me->sem_turno_C));
+        me->turno_C = false;
+        sem_post(&(me->sem_turno_C));
         sem_wait(&(me->sem_prioridad_maxima));
         me->prioridad_maxima = PAGOS_ANUL;
         sem_post(&(me->sem_prioridad_maxima));
