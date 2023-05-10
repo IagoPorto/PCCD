@@ -15,7 +15,7 @@
 
 #define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
 #define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
-#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
+//#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
 #define __DEBUG
 
 #define N 4 // --> nodos
@@ -77,7 +77,7 @@ typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 } memoria;
 
-void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
+/*void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
   int i;
   struct msgbuf_mensaje msg_testigo;
   msg_testigo.msg_type = (long)3;
@@ -97,9 +97,9 @@ void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
     }
   }
   sem_post(&(me->sem_nodos_con_consultas));
-}
+}*/
 
-void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a quien tenga lectores o dar paso a un lector
+/*void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a quien tenga lectores o dar paso a un lector
   set_prioridad_max(me);                                   //después del turno de consultas
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   sem_wait(&(me->sem_prioridad_maxima));
@@ -131,9 +131,9 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
       }
     }
   }
-}
+}*/
 
-void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testigo al nodo falso
+/*void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testigo al nodo falso
 
   int i;
   sem_wait(&(me->sem_nodo_master));
@@ -174,7 +174,7 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
     sem_post(&(me->sem_contador_consultas_pendientes));
   }
   return;
-}
+}*/
 
 void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
 
