@@ -36,6 +36,7 @@ int main(int argc, char *argv[]){
             me->atendidas[i][j] = 0;
             me->peticiones[i][j] = 0;
         }
+        me->nodos_con_consultas[i] = 0;
     }
     me->testigos_recogidos = false;
     me->id_nodo_master = 0;
@@ -58,6 +59,7 @@ int main(int argc, char *argv[]){
     sem_init(&(me->sem_dentro_C), 1, 1);
     sem_init(&(me->sem_id_nodo_master), 1, 1);
     sem_init(&(me->sem_nodo_master), 1, 1);
+    sem_init(&(me->sem_nodos_con_consultas), 1, 1);
     sem_init(&(me->sem_testigos_recogidos), 1, 1);
     // inicialización semáforos de paso.
     sem_init(&(me->sem_anul_pagos_pend), 1, 0);
@@ -322,9 +324,9 @@ int main(int argc, char *argv[]){
                     me->nodo_master = mensaje_rx.id_nodo_master;
                     sem_post(&(me->sem_nodo_master));
                     sem_wait(&(me->sem_contador_consultas_pendientes));
-                    while(me->contador_consultas_pendientes == 0){
+                    for(i = 0; i < me->contador_consultas_pendientes; i++){
+                        printf("consultas pend = %d\n", me->contador_consultas_pendientes);
                         sem_post(&(me->sem_consult_pend));
-                        me->contador_consultas_pendientes = me->contador_consultas_pendientes - 1;
                     }
                     sem_post(&(me->sem_contador_consultas_pendientes));
                 }

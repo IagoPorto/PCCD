@@ -206,7 +206,16 @@ int main(int argc, char *argv[]){
                         #endif
                         sem_post(&(me->sem_atendidas));
                         sem_post(&(me->sem_peticiones));
-                        // FALTA PONER EL CASO DE CONSULTAS
+                        sem_wait(&(me->sem_nodo_master));
+                        me->nodo_master = true;
+                        sem_post(&(me->sem_nodo_master));
+                        int i;
+                        sem_wait(&(me->sem_contador_consultas_pendientes));
+                        for(i = 0; i < me->contador_consultas_pendientes; i++){
+                            printf("consultas pend = %d\n", me->contador_consultas_pendientes);
+                            sem_post(&(me->sem_consult_pend));
+                        }
+                        sem_post(&(me->sem_contador_consultas_pendientes));
                     }
                 }
             }else{

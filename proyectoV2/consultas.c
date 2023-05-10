@@ -76,6 +76,12 @@ int main(int argc, char *argv[]){
                     sem_wait(&(me->sem_dentro));
                     me->dentro = true;
                     sem_post(&(me->sem_dentro));
+                    sem_wait(&(me->sem_nodo_master));
+                    me->nodo_master = true;
+                    sem_post(&(me->sem_nodo_master));
+                    sem_wait(&(me->sem_nodos_con_consultas));
+                    me->nodos_con_consultas[mi_id - 1] = 1;
+                    sem_post(&(me->sem_nodos_con_consultas));
                 }else{
                     sem_post(&(me->sem_prioridad_maxima));
                     sem_post(&(me->sem_testigo));
@@ -123,11 +129,24 @@ int main(int argc, char *argv[]){
         sem_post(&(me->sem_turno_C));
         sem_post(&(me->sem_contador_consultas_pendientes));
         sem_post(&(me->sem_dentro_C));
+        #ifdef __PRINT_PROCESO
+        printf("CONSULTAS --> soy el último y envio el testigo.\n");
+        #endif
+        sem_wait(&(me->sem_dentro));
+        me->dentro = false;
+        sem_post(&(me->sem_dentro));
         send_testigo_consultas(mi_id, me);
+        #ifdef __PRINT_PROCESO
+        printf("CONSULTAS --> Chao.\n");
+        #endif
     }else{
         sem_post(&(me->sem_turno_C));
         sem_post(&(me->sem_contador_consultas_pendientes));
         sem_post(&(me->sem_dentro_C));
+        #ifdef __PRINT_PROCESO
+        printf("CONSULTAS --> Chao.\n");
+        #endif
+
     }
     
     return 0;

@@ -293,6 +293,7 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   sem_wait(&(me->sem_prioridad_maxima));
   if(me->prioridad_max_otro_nodo > me->prioridad_maxima){
+    printf("envio el testigo a quien corresponda\n");
     sem_post(&(me->sem_prioridad_max_otro_nodo));
     sem_post(&(me->sem_prioridad_maxima));
     send_testigo(mi_id, me);
@@ -300,6 +301,7 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
     sem_post(&(me->sem_prioridad_max_otro_nodo));
     if(me->prioridad_maxima == PAGOS_ANUL){
       sem_post(&(me->sem_prioridad_maxima));
+      printf("es el turno de pagos\n");
       sem_wait(&(me->sem_turno));
       me->turno = true;
       sem_post(&(me->sem_turno));
@@ -310,6 +312,7 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
     }else{
       if(me->prioridad_maxima == ADMIN_RESER){
         sem_post(&(me->sem_prioridad_maxima));
+        printf("es el turno de admin\n");
         sem_wait(&(me->sem_turno));
         me->turno = true;
         sem_post(&(me->sem_turno));
@@ -317,6 +320,9 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
         me->turno_RA = true;
         sem_post(&(me->sem_turno_RA));
         sem_post(&(me->sem_reser_admin_pend));
+      }else{
+        sem_post(&(me->sem_prioridad_maxima));
+        printf("no es el turno de nadie\n");
       }
     }
   }
@@ -331,18 +337,30 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
   int i;
   sem_wait(&(me->sem_nodo_master));
   if(me->nodo_master){//SOY EL NODO MASTER
+    
     sem_post(&(me->sem_nodo_master));
+    #ifdef __DEBUG
+    printf("DEBUG: SOY EL NODO MASTER.\n");
+    #endif
     sem_wait(&(me->sem_testigos_recogidos));
     me->testigos_recogidos = true;
+    sem_post(&(me->sem_testigos_recogidos));
     sem_wait(&(me->sem_nodos_con_consultas));
     me->nodos_con_consultas[mi_id - 1] = 0;
+    sem_post(&(me->sem_nodos_con_consultas));
     for(i = 0; i < N; i++){
-      if(me->nodos_con_consultas[i] == 0){
+      sem_wait(&(me->sem_nodos_con_consultas));
+      if(me->nodos_con_consultas[i] == 1){
+        sem_post(&(me->sem_nodos_con_consultas));
+        sem_wait(&(me->sem_testigos_recogidos));
         me->testigos_recogidos = false;
+        sem_post(&(me->sem_testigos_recogidos));
         break;
+      }else{
+        sem_post(&(me->sem_nodos_con_consultas));
       }
     }
-    sem_post(&(me->sem_nodos_con_consultas));
+    sem_wait(&(me->sem_testigos_recogidos));
     if(me->testigos_recogidos){
       sem_post(&(me->sem_testigos_recogidos));
       send_testigo_consultas_master(mi_id, me);
@@ -351,6 +369,9 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
     }
   }else{//NO SOY EL NODO MASTER
     sem_post(&(me->sem_nodo_master));
+    #ifdef __DEBUG
+    printf("DEBUG: NO SOY EL NODO MASTER.\n");
+    #endif
     struct msgbuf_mensaje msg_testigo;
     msg_testigo.msg_type = (long)4;
     msg_testigo.id = mi_id;
@@ -366,7 +387,7 @@ void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testig
   sem_wait(&(me->sem_atendidas));
   sem_post(&(me->sem_peticiones));
   me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
-  sem_wait(&(me->sem_atendidas));
+  sem_post(&(me->sem_atendidas));
   sem_post(&(me->sem_peticiones));
   sem_wait(&(me->sem_contador_consultas_pendientes));
   if(me->contador_consultas_pendientes > 0){
