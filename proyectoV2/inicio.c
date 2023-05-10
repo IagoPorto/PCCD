@@ -98,28 +98,28 @@ int main(int argc,char *argv[]){
 
 
         for (k = 0; k < numProcesosAux; k++) {
-            for(i = 0 ; i < numPrioridades; i++){
+            for(j = 0 ; j < numPrioridades; j++){
 
                 procHijo[n] = fork ();
 
                 if (procHijo[n] == 0) {
-                    if(i == 0){
+                    if(j == 0){
                         execl ("pagos", "pagos",iAux, (char *) NULL);
                          
                         n++;
 
                     }
-                    if( i == 1){
+                    if( j == 1){
                         execl ("reservas", "reservas",iAux, (char *) NULL);
                         n++;
 
 
                     }
-                    if( i == 2){
+                    if( j == 2){
                         execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
                         n++;
                     }
-                    if( i == 3){
+                    if( j == 3){
                         execl ("administracion", "administracion",iAux, (char *) NULL);
                         n++;
                         
