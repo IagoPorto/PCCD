@@ -151,13 +151,7 @@ int main(int argc, char *argv[]){
                         sem_post(&(me->sem_prioridad_max_otro_nodo));
                         sem_post(&(me->sem_prioridad_maxima));
                         sem_post(&(me->sem_testigo));
-                        ///
-                        ///
-                        ////
-                        ///
-                        ///
-                        ///
-                        ///
+                        send_copias_testigos(mi_id, me);
                     }else{
                         sem_post(&(me->sem_prioridad_max_otro_nodo));
                         sem_post(&(me->sem_prioridad_maxima));
@@ -298,12 +292,71 @@ int main(int argc, char *argv[]){
                 sem_post(&(me->sem_testigo));
 
                 break;
-            case (long)3:
+            case (long)3://Recibimos el testigo para consultas
                 #ifdef __PRINT_RX
                 printf("RECEPTOR: He recibido el testigo CONSULTAS del nodo: %d\n", mensaje_rx.id);
                 #endif
+                //Si nos llega el testigo pero hay mas prioridad lo devolvemos
+                //si no, turno de consultas a 1
+                sem_wait(&(me->sem_prioridad_max_otro_nodo));
+                if(me->prioridad_max_otro_nodo > CONSULTAS){
+                    sem_post(&(me->sem_prioridad_max_otro_nodo));
+                    struct msgbuf_mensaje msg_testigo;
+                    msg_testigo.msg_type = (long)4;
+                    msg_testigo.id = mi_id;
+                    msg_testigo.id_nodo_master = mensaje_rx.id_nodo_master;
+                    sem_wait(&me->sem_buzones_nodos);
+                    if (msgsnd(me->buzones_nodos[msg_testigo.id_nodo_master - 1], &msg_testigo, sizeof(msg_testigo), 0)){
+                    printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+                    }
+                    sem_post(&me->sem_buzones_nodos);
+                }else{
+                    sem_post(&(me->sem_prioridad_max_otro_nodo));
+                    sem_wait(&(me->sem_turno_C));
+                    me->turno_C = true;
+                    sem_post(&(me->sem_turno_C));
+                    sem_wait(&(me->sem_turno));
+                    me->turno = true;
+                    sem_post(&(me->sem_turno));
+                    sem_wait(&(me->sem_nodo_master));
+                    me->nodo_master = mensaje_rx.id_nodo_master;
+                    sem_post(&(me->sem_nodo_master));
+                    sem_wait(&(me->sem_contador_consultas_pendientes));
+                    while(me->contador_consultas_pendientes == 0){
+                        sem_post(&(me->sem_consult_pend));
+                        me->contador_consultas_pendientes = me->contador_consultas_pendientes - 1;
+                    }
+                    sem_post(&(me->sem_contador_consultas_pendientes));
+                }
+                
+                break;
+            case (long)4:
+                #ifdef __PRINT_RX
+                printf("RECEPTOR: He recibido el testigo CONSULTAS de un nodo NO master del nodo: %d\n", mensaje_rx.id);
+                #endif
+                sem_wait(&(me->sem_nodos_con_consultas));
+                me->nodos_con_consultas[mensaje_rx.id - 1] = 0;
+                sem_post(&(me->sem_nodos_con_consultas));
+                sem_wait(&(me->sem_testigos_recogidos));
+                me->testigos_recogidos = true;
+                sem_wait(&(me->sem_nodos_con_consultas));
+                me->nodos_con_consultas[mi_id - 1] = 0;
+                for(i = 0; i < N; i++){
+                if(me->nodos_con_consultas[i] == 0){
+                    me->testigos_recogidos = false;
+                    break;
+                }
+                }
+                sem_post(&(me->sem_nodos_con_consultas));
+                if(me->testigos_recogidos){
+                sem_post(&(me->sem_testigos_recogidos));
+                send_testigo_consultas_master(mi_id, me);
+                }else{
+                sem_post(&(me->sem_testigos_recogidos));
+                }
                 break;
         }
+        
     }
 
     return 0;

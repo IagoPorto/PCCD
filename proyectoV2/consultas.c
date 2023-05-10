@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
         sem_post(&(me->sem_turno_C));
         sem_post(&(me->sem_contador_consultas_pendientes));
         sem_post(&(me->sem_dentro_C));
-        send_testigo_consultas(me, mi_id);
+        send_testigo_consultas(mi_id, me);
     }else{
         sem_post(&(me->sem_turno_C));
         sem_post(&(me->sem_contador_consultas_pendientes));

@@ -45,8 +45,9 @@ typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   int dentro_C;
   bool nodo_master, testigos_recogidos;
   int id_nodo_master;
+  int nodos_con_consultas[N];
 
-  sem_t sem_dentro_C, sem_nodo_master,
+  sem_t sem_dentro_C, sem_nodo_master, sem_nodos_con_consultas,
         sem_testigos_recogidos, sem_id_nodo_master;
 
   // VARIABLES GLOBALES
@@ -77,103 +78,45 @@ typedef struct{ // MEMOMORIA COMPARTIDA POR LOS PROCESOS DE UN NODO.
   sem_t sem_anul_pagos_pend, sem_reser_admin_pend, sem_consult_pend;
 } memoria;
 
-void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
-  int i;
-  struct msgbuf_mensaje msg_testigo;
-  msg_testigo.msg_type = (long)3;
-  msg_testigo.id = mi_id;
-  sem_wait(&(me->sem_id_nodo_master));
-  msg_testigo.id_nodo_master = mi_id;
-  sem_post(&(me->sem_id_nodo_master));
-  sem_wait(&(me->sem_nodos_con_consultas));
-  for(i = 0; i < N; i ++){
-    if(me->nodos_con_consultas[i] == 1){
-      me->nodos_con_consultas[i] = 2;
-      sem_wait(&(me->sem_buzones_nodos));
-      if (msgsnd(me->buzones_nodos[i], &msg_testigo, sizeof(msg_testigo), 0)){
-        printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+void set_prioridad_max(memoria *me){
+  sem_wait(&(me->sem_contador_anul_pagos_pendientes));
+  if (me->contador_anul_pagos_pendientes > 0){
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+    sem_wait(&(me->sem_prioridad_maxima));
+    me->prioridad_maxima = PAGOS_ANUL;
+    sem_post(&(me->sem_prioridad_maxima));
+  }else{
+    sem_post(&(me->sem_contador_anul_pagos_pendientes));
+    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
+    if (me->contador_reservas_admin_pendientes > 0){
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_prioridad_maxima));
+      me->prioridad_maxima = ADMIN_RESER;
+      sem_post(&(me->sem_prioridad_maxima));
+    }else{
+      sem_post(&(me->sem_contador_reservas_admin_pendientes));
+      sem_wait(&(me->sem_contador_consultas_pendientes));
+      if (me->contador_consultas_pendientes > 0){
+        sem_post(&(me->sem_contador_consultas_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = CONSULTAS;
+        sem_post(&(me->sem_prioridad_maxima));
+      }else{
+        sem_post(&(me->sem_contador_consultas_pendientes));
+        sem_wait(&(me->sem_prioridad_maxima));
+        me->prioridad_maxima = 0;
+        sem_post(&(me->sem_prioridad_maxima));
       }
-      sem_post(&me->sem_buzones_nodos);
     }
   }
-  sem_post(&(me->sem_nodos_con_consultas));
-}
 
-void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a quien tenga lectores o dar paso a un lector
-  set_prioridad_max(me);                                   //después del turno de consultas
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   sem_wait(&(me->sem_prioridad_maxima));
-  if(me->prioridad_max_otro_nodo > me->prioridad_maxima){
-    sem_post(&(me->sem_prioridad_max_otro_nodo));
-    sem_post(&(me->sem_prioridad_maxima));
-    send_testigo(mi_id, me);
-  }else{
-    sem_post(&(me->sem_prioridad_max_otro_nodo));
-    if(me->prioridad_maxima == PAGOS_ANUL){
-      sem_post(&(me->sem_prioridad_maxima));
-      sem_wait(&(me->sem_turno));
-      me->turno = true;
-      sem_post(&(me->sem_turno));
-      sem_wait(&(me->sem_turno_PA));
-      me->turno_PA = true;
-      sem_post(&(me->sem_turno_PA));
-      sem_post(&(me->sem_anul_pagos_pend));
-    }else{
-      if(me->prioridad_maxima == ADMIN_RESER){
-        sem_post(&(me->sem_prioridad_maxima));
-        sem_wait(&(me->sem_turno));
-        me->turno = true;
-        sem_post(&(me->sem_turno));
-        sem_wait(&(me->sem_turno_RA));
-        me->turno_RA = true;
-        sem_post(&(me->sem_turno_RA));
-        sem_post(&(me->sem_reser_admin_pend));
-      }
-    }
-  }
-}
-
-void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testigo al nodo falso
-
-  int i;
-  sem_wait(&(me->sem_nodo_master));
-  if(me->nodo_master){//SOY EL NODO MASTER
-    sem_post(&(me->sem_nodo_master));
-    sem_wait(&(me->sem_testigos_recogidos));
-    me->testigos_recogidos = true;
-    sem_post(&(me->sem_testigos_recogidos));
-    ///
-    ///
-    //
-    //
-    send_testigo_consultas_master(mi_id, me);
-  }else{//NO SOY EL NODO MASTER
-    sem_post(&(me->sem_nodo_master));
-    struct msgbuf_mensaje msg_testigo;
-    msg_testigo.msg_type = (long)4;
-    msg_testigo.id = mi_id;
-    sem_wait(&(me->sem_id_nodo_master));
-    msg_testigo.id_nodo_master = me->id_nodo_master;
-    sem_post(&(me->sem_id_nodo_master));
-    sem_wait(&me->sem_buzones_nodos);
-    if (msgsnd(me->buzones_nodos[msg_testigo.id_nodo_master - 1], &msg_testigo, sizeof(msg_testigo), 0)){
-      printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
-    }
-    sem_post(&me->sem_buzones_nodos);
-  }
-  sem_wait(&(me->sem_atendidas));
-  sem_post(&(me->sem_peticiones));
-  me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
-  sem_wait(&(me->sem_atendidas));
-  sem_post(&(me->sem_peticiones));
-  sem_wait(&(me->sem_contador_consultas_pendientes));
-  if(me->contador_consultas_pendientes > 0){
-    sem_post(&(me->sem_contador_consultas_pendientes));
-    send_peticiones(me, mi_id, CONSULTAS);
-  }else{
-    sem_post(&(me->sem_contador_consultas_pendientes));
-  }
-  return;
+  #ifdef __DEBUG
+  printf("\tDEBUG --> maxima mi nodo %d, otro nodo %d.\n",me->prioridad_maxima, me->prioridad_max_otro_nodo);
+  #endif
+  sem_post(&(me->sem_prioridad_max_otro_nodo));
+  sem_post(&(me->sem_prioridad_maxima));
 }
 
 void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
@@ -282,47 +225,6 @@ void send_testigo(int mi_id, memoria *me){ // MODIFICAR PARA LA NUEVA SITUACIÓN
   return;
 }
 
-void set_prioridad_max(memoria *me){
-  sem_wait(&(me->sem_contador_anul_pagos_pendientes));
-  if (me->contador_anul_pagos_pendientes > 0){
-    sem_post(&(me->sem_contador_anul_pagos_pendientes));
-    sem_wait(&(me->sem_prioridad_maxima));
-    me->prioridad_maxima = PAGOS_ANUL;
-    sem_post(&(me->sem_prioridad_maxima));
-  }else{
-    sem_post(&(me->sem_contador_anul_pagos_pendientes));
-    sem_wait(&(me->sem_contador_reservas_admin_pendientes));
-    if (me->contador_reservas_admin_pendientes > 0){
-      sem_post(&(me->sem_contador_reservas_admin_pendientes));
-      sem_wait(&(me->sem_prioridad_maxima));
-      me->prioridad_maxima = ADMIN_RESER;
-      sem_post(&(me->sem_prioridad_maxima));
-    }else{
-      sem_post(&(me->sem_contador_reservas_admin_pendientes));
-      sem_wait(&(me->sem_contador_consultas_pendientes));
-      if (me->contador_consultas_pendientes > 0){
-        sem_post(&(me->sem_contador_consultas_pendientes));
-        sem_wait(&(me->sem_prioridad_maxima));
-        me->prioridad_maxima = CONSULTAS;
-        sem_post(&(me->sem_prioridad_maxima));
-      }else{
-        sem_post(&(me->sem_contador_consultas_pendientes));
-        sem_wait(&(me->sem_prioridad_maxima));
-        me->prioridad_maxima = 0;
-        sem_post(&(me->sem_prioridad_maxima));
-      }
-    }
-  }
-
-  sem_wait(&(me->sem_prioridad_max_otro_nodo));
-  sem_wait(&(me->sem_prioridad_maxima));
-  #ifdef __DEBUG
-  printf("\tDEBUG --> maxima mi nodo %d, otro nodo %d.\n",me->prioridad_maxima, me->prioridad_max_otro_nodo);
-  #endif
-  sem_post(&(me->sem_prioridad_max_otro_nodo));
-  sem_post(&(me->sem_prioridad_maxima));
-}
-
 void send_peticiones(memoria *me, int mi_id, int prioridad){
   int i;
   struct msgbuf_mensaje solicitud;
@@ -361,6 +263,122 @@ void send_peticiones(memoria *me, int mi_id, int prioridad){
         }
     }
 }
+
+void send_copias_testigos(int mi_id, memoria *me){//enviar copias del testigo
+                                                  //el nodo master es el que usa esta función.
+  int i;
+  struct msgbuf_mensaje msg_testigo;
+  msg_testigo.msg_type = (long)3;
+  msg_testigo.id = mi_id;
+  msg_testigo.id_nodo_master = mi_id;
+  sem_wait(&(me->sem_atendidas));
+  sem_wait(&(me->sem_peticiones));
+  for(i = 0; i < N; i ++){
+    if(me->atendidas[i][CONSULTAS - 1] < me->peticiones[i][CONSULTAS - 1]){
+      me->atendidas[i][CONSULTAS - 1] = me->peticiones[i][CONSULTAS - 1];
+      sem_wait(&(me->sem_buzones_nodos));
+      if (msgsnd(me->buzones_nodos[i], &msg_testigo, sizeof(msg_testigo), 0)){
+        printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+      }
+      sem_post(&me->sem_buzones_nodos);
+    }
+  }
+  sem_post(&(me->sem_atendidas));
+  sem_post(&(me->sem_peticiones));
+}
+
+void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a quien tenga lectores o dar paso a un lector
+  set_prioridad_max(me);                                   //después del turno de consultas
+                                                            // paso de consultas a lector, esta función la usa el nodo_master
+  sem_wait(&(me->sem_prioridad_max_otro_nodo));
+  sem_wait(&(me->sem_prioridad_maxima));
+  if(me->prioridad_max_otro_nodo > me->prioridad_maxima){
+    sem_post(&(me->sem_prioridad_max_otro_nodo));
+    sem_post(&(me->sem_prioridad_maxima));
+    send_testigo(mi_id, me);
+  }else{
+    sem_post(&(me->sem_prioridad_max_otro_nodo));
+    if(me->prioridad_maxima == PAGOS_ANUL){
+      sem_post(&(me->sem_prioridad_maxima));
+      sem_wait(&(me->sem_turno));
+      me->turno = true;
+      sem_post(&(me->sem_turno));
+      sem_wait(&(me->sem_turno_PA));
+      me->turno_PA = true;
+      sem_post(&(me->sem_turno_PA));
+      sem_post(&(me->sem_anul_pagos_pend));
+    }else{
+      if(me->prioridad_maxima == ADMIN_RESER){
+        sem_post(&(me->sem_prioridad_maxima));
+        sem_wait(&(me->sem_turno));
+        me->turno = true;
+        sem_post(&(me->sem_turno));
+        sem_wait(&(me->sem_turno_RA));
+        me->turno_RA = true;
+        sem_post(&(me->sem_turno_RA));
+        sem_post(&(me->sem_reser_admin_pend));
+      }
+    }
+  }
+}
+
+void send_testigo_consultas(int mi_id, memoria *me){//enviar la copia del testigo 
+                                                    //esta función es usada por el nodo master y
+                                                    //por los nodos con consultas cuando ya no tienen consultas
+                                                    //o cuando les toca devolver el testigo porque hay procesos
+                                                    //escritores
+
+  int i;
+  sem_wait(&(me->sem_nodo_master));
+  if(me->nodo_master){//SOY EL NODO MASTER
+    sem_post(&(me->sem_nodo_master));
+    sem_wait(&(me->sem_testigos_recogidos));
+    me->testigos_recogidos = true;
+    sem_wait(&(me->sem_nodos_con_consultas));
+    me->nodos_con_consultas[mi_id - 1] = 0;
+    for(i = 0; i < N; i++){
+      if(me->nodos_con_consultas[i] == 0){
+        me->testigos_recogidos = false;
+        break;
+      }
+    }
+    sem_post(&(me->sem_nodos_con_consultas));
+    if(me->testigos_recogidos){
+      sem_post(&(me->sem_testigos_recogidos));
+      send_testigo_consultas_master(mi_id, me);
+    }else{
+      sem_post(&(me->sem_testigos_recogidos));
+    }
+  }else{//NO SOY EL NODO MASTER
+    sem_post(&(me->sem_nodo_master));
+    struct msgbuf_mensaje msg_testigo;
+    msg_testigo.msg_type = (long)4;
+    msg_testigo.id = mi_id;
+    sem_wait(&(me->sem_id_nodo_master));
+    msg_testigo.id_nodo_master = me->id_nodo_master;
+    sem_post(&(me->sem_id_nodo_master));
+    sem_wait(&me->sem_buzones_nodos);
+    if (msgsnd(me->buzones_nodos[msg_testigo.id_nodo_master - 1], &msg_testigo, sizeof(msg_testigo), 0)){
+      printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+    }
+    sem_post(&me->sem_buzones_nodos);
+  }
+  sem_wait(&(me->sem_atendidas));
+  sem_post(&(me->sem_peticiones));
+  me->atendidas[mi_id - 1][CONSULTAS - 1] = me->peticiones[mi_id - 1][CONSULTAS - 1];
+  sem_wait(&(me->sem_atendidas));
+  sem_post(&(me->sem_peticiones));
+  sem_wait(&(me->sem_contador_consultas_pendientes));
+  if(me->contador_consultas_pendientes > 0){
+    sem_post(&(me->sem_contador_consultas_pendientes));
+    send_peticiones(me, mi_id, CONSULTAS);
+  }else{
+    sem_post(&(me->sem_contador_consultas_pendientes));
+  }
+  return;
+}
+
+
 
 int max(int n1, int n2){
   if (n1 > n2)return n1;
