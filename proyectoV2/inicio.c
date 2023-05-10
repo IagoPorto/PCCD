@@ -18,6 +18,7 @@ int main(int argc,char *argv[]){
     char entrada [50], numeros [3];
     int i, j, k, cont, nNodosAux, numProcesosAux,nProcConPrio;
     int numPrioridades = 5;
+    int n = 0;
    
     FILE * ficheroIn = fopen (argv [1], "r");
 
@@ -99,28 +100,28 @@ int main(int argc,char *argv[]){
         for (k = 0; k < numProcesosAux; k++) {
             for(i = 0 ; i < numPrioridades; i++){
 
-                procHijo[k+i] = fork ();
+                procHijo[n] = fork ();
 
-                if (procHijo[k+i] == 0) {
+                if (procHijo[n] == 0) {
                     if(i == 0){
-                         execl ("pagos", "pagos",iAux, (char *) NULL);
+                        execl ("pagos", "pagos",iAux, (char *) NULL);
                          
-                        
+                        n++;
 
                     }
                     if( i == 1){
                         execl ("reservas", "reservas",iAux, (char *) NULL);
-
+                        n++;
 
 
                     }
                     if( i == 2){
                         execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
-
+                        n++;
                     }
                     if( i == 3){
                         execl ("administracion", "administracion",iAux, (char *) NULL);
-
+                        n++;
                         
                       
                     }
