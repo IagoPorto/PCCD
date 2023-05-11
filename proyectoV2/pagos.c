@@ -1,4 +1,5 @@
 #include "procesos.h"
+#include <sys/time.h>
 
 int main(int argc, char *argv[]){
 
@@ -6,6 +7,13 @@ int main(int argc, char *argv[]){
         printf("La forma correcta de ejecución es: %s \"id_nodo\"\n", argv[0]);
         return -1;
     }
+
+    struct timeval timeInicio, timeSC,timeFinSC, timeFin;
+    char tipoProceso;
+    double time;
+
+    FILE * ficheroSalida= fopen ("salida.txt", "a");
+
 
     int mi_id = atoi(argv[1]);
     //int i;
@@ -21,6 +29,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("PAGOS --> Hola\n"); 
     #endif
+    gettimeofday (&timeInicio, NULL);
+
+
     sem_wait(&(me->sem_contador_anul_pagos_pendientes));
     me->contador_anul_pagos_pendientes = me->contador_anul_pagos_pendientes + 1;
     sem_wait(&(me->sem_testigo));
@@ -85,9 +96,11 @@ int main(int argc, char *argv[]){
         }
     }
     // SECCIÓN CRÍTICA DE EXCLUSIÓN MUTUA BABY
+
     #ifdef __PRINT_PROCESO
     printf("PAGOS --> VOY A LA SCEM .\n");
     #endif
+    gettimeofday (&timeSC, NULL);
     sem_wait(&(me->sem_contador_anul_pagos_pendientes));
     me->contador_anul_pagos_pendientes = me->contador_anul_pagos_pendientes - 1;
     sem_post(&(me->sem_contador_anul_pagos_pendientes));
@@ -101,6 +114,7 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("PAGOS --> salgo de la SCEM.\n");
     #endif
+    gettimeofday (&timeFinSC, NULL);
     
     set_prioridad_max(me);
 
@@ -252,6 +266,10 @@ int main(int argc, char *argv[]){
             }
         }
     }
+    time =(timeFinSC.tv_sec - timeSC.tv_sec)*1000 + (timeFinSC.tv_usec - timeSC.tv_usec)/1000.0;
+    fprintf (ficheroSalida, "[%i,Pagos,%d]\n", memoria_id , time);
+
+
     
     return 0;
 }
