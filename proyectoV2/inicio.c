@@ -100,6 +100,7 @@ int main(int argc,char *argv[]){
             sprintf (iAux, "%i", i);
 
             execl ("receptor", "receptor",iAux, (char *) NULL);
+            return 0;
 
                                
         } 
@@ -127,35 +128,39 @@ int main(int argc,char *argv[]){
             procHijo [n] = fork ();
             if (procHijo [n] == 0) {
 
-            execl ("pagos", "pagos",iAux, (char *) NULL);
-            n++;
+                execl ("pagos", "pagos",iAux, (char *) NULL);
+                return 0;
             }
+            n++;
         }
         
         for(l = 0;l < numAnulaciones;l++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
             execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
-            n++;
+            return 0;
             }
+              n++;
 
         }
 
         for(m = 0;m < numReservas;m++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
-            execl ("reservas", "reservas",iAux, (char *) NULL);
-            n++;
+                execl ("reservas", "reservas",iAux, (char *) NULL);
+                return 0;
             }
+            n++;
 
         }
 
         for(p = 0;p < numAdmin;p++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
-            execl ("administracion", "administracion",iAux, (char *) NULL);
-            n++;
+                execl ("administracion", "administracion",iAux, (char *) NULL);
+                n++;
             }
+            return 0;
 
 
         }
@@ -163,9 +168,10 @@ int main(int argc,char *argv[]){
         for(y = 0;y < numConsultas;y++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
-            execl ("consultas", "consultas",iAux, (char *) NULL);
-            n++;
+                execl ("consultas", "consultas",iAux, (char *) NULL);
+                return 0;
             }
+            n++;
 
         }
        
