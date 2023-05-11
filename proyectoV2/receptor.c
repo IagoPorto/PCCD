@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
         // ACTUALIZO EL VALOR DE PETICIONES CON LA QUE ME ACABA DE LLEGAR
         switch (mensaje_rx.msg_type){
             case (long)1: // EL mensaje es una petición.
-                printf("\tCASO 1:\n");
+                //printf("\tCASO 1:\n");
                 #ifdef __PRINT_RX
                 printf("RECEPTOR: He recibido una petición (%d) del nodo: %d, con prioridad: %d\n", mensaje_rx.peticion, mensaje_rx.id, mensaje_rx.prioridad);
                 #endif
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
                 printf("La prioridad máxima de otro nodo es: %i\n", me->prioridad_max_otro_nodo);
                 #endif
                 sem_post(&(me->sem_prioridad_max_otro_nodo));
-                printf("\n");
+               // printf("\n");
                 if(mensaje_rx.prioridad != CONSULTAS){
                     sem_wait(&(me->sem_turno_C));
                     sem_wait(&(me->sem_testigo));
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]){
                 break;
 
             case (long)2:// El mensaje es el testigo
-                printf("\tCASO 2:\n");
+                //printf("\tCASO 2:\n");
                 #ifdef __PRINT_RX
                 printf("RECEPTOR: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
                 #endif
@@ -188,17 +188,17 @@ int main(int argc, char *argv[]){
                             if (me->atendidas[i][j] < me->peticiones[i][j]){
                                 sem_wait(&(me->sem_prioridad_max_otro_nodo));
                                 me->prioridad_max_otro_nodo = max(me->prioridad_max_otro_nodo, j + 1);
-                                printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
-                                printf("atendidas: %d; peticiones: %d\n", me->atendidas[i][j], me->peticiones[i][j]);
+                                //printf("La prio max del otro nodo es: %d\n", me->prioridad_max_otro_nodo);
+                                //printf("atendidas: %d; peticiones: %d\n", me->atendidas[i][j], me->peticiones[i][j]);
                                 sem_post(&(me->sem_prioridad_max_otro_nodo));
                             }
                         }
                     }
                 }
                 for(i = 0; i < N; i++){
-                    printf("NODO %d\n", i + 1);
-                    printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
-                    printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+                    //printf("NODO %d\n", i + 1);
+                    //printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
+                    //printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
                 }
                 sem_post(&(me->sem_atendidas));
                 sem_post(&(me->sem_peticiones));
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]){
 
                 break;
             case (long)3://Recibimos el testigo para consultas
-                printf("\tCASO 3:\n");
+                //printf("\tCASO 3:\n");
 
                 #ifdef __PRINT_RX
                 printf("RECEPTOR: He recibido el testigo FALSO CONSULTAS del nodo: %d\n", mensaje_rx.id);
@@ -333,9 +333,9 @@ int main(int argc, char *argv[]){
                     }
                 }
                 for(i = 0; i < N; i++){
-                    printf("NODO %d\n", i + 1);
-                    printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
-                    printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
+                   // printf("NODO %d\n", i + 1);
+                    //printf("\tPeticiones: %d, %d, %d\n", me->peticiones[i][0], me->peticiones[i][1], me->peticiones[i][2]);
+                    //printf("\tAtendidas : %d, %d, %d\n", me->atendidas[i][0], me->atendidas[i][1], me->atendidas[i][2]);
                 }
                 sem_post(&(me->sem_atendidas));
                 sem_post(&(me->sem_peticiones));
@@ -351,13 +351,13 @@ int main(int argc, char *argv[]){
                     msg_testigo.id_nodo_master = mensaje_rx.id_nodo_master;
                     sem_wait(&me->sem_buzones_nodos);
                     if (msgsnd(me->buzones_nodos[msg_testigo.id_nodo_master - 1], &msg_testigo, sizeof(msg_testigo), 0)){
-                    printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
+                        printf("PROCESO ENVIO TESTIGO FALSO: \n\n\tERROR: Hubo un error al enviar el testigo.\n");
                     }
                     sem_post(&me->sem_buzones_nodos);
                 }else{
                     sem_post(&(me->sem_prioridad_max_otro_nodo));
                     sem_post(&(me->sem_prioridad_maxima));
-                    printf("Voy a dar paso a las consultas\n");
+                   // printf("Voy a dar paso a las consultas\n");
                     sem_wait(&(me->sem_turno_C));
                     me->turno_C = true;
                     sem_post(&(me->sem_turno_C));
@@ -378,7 +378,7 @@ int main(int argc, char *argv[]){
                 
                 break;
             case (long)4:
-                printf("\tCASO 4:\n");
+                //printf("\tCASO 4:\n");
                 #ifdef __PRINT_RX
                 printf("RECEPTOR: He recibido el testigo CONSULTAS de un nodo NO master del nodo: %d\n", mensaje_rx.id);
                 #endif
@@ -403,8 +403,7 @@ int main(int argc, char *argv[]){
                 sem_post(&(me->sem_nodos_con_consultas));
                 if(me->testigos_recogidos){
                     sem_post(&(me->sem_testigos_recogidos));
-                    printf("VOY A LLAMAR A LA FUNCIÓN DE SEND TESTIGO CONSULTAS MASTER\n");
-                    sleep(8);
+                    //printf("VOY A LLAMAR A LA FUNCIÓN DE SEND TESTIGO CONSULTAS MASTER\n");
                     send_testigo_consultas_master(mi_id, me);
                 }else{
                     sem_post(&(me->sem_testigos_recogidos));

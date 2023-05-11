@@ -1,5 +1,4 @@
 #include "procesos.h"
-#include <sys/time.h>
 
 int main(int argc, char *argv[]){
 
@@ -60,9 +59,9 @@ int main(int argc, char *argv[]){
         //Enviamos peticiones
         send_peticiones(me, mi_id, PAGOS_ANUL);
         // ACABAMOS CON EL ENVIO DE PETICIONES AHORA ME TOCA ESPERAR.
-        printf("ESpero\n");
+        //printf("ESpero\n");
         sem_wait(&(me->sem_anul_pagos_pend));
-        printf("salgo\n");
+        //printf("salgo\n");
     }else{ // NO TENGO QUE PEDIR EL TESTIGO
         sem_post(&(me->sem_testigo));
         sem_post(&(me->sem_turno_PA));
@@ -148,7 +147,7 @@ int main(int argc, char *argv[]){
             sem_wait(&(me->sem_contador_procesos_max_SC));
             sem_wait(&(me->sem_contador_anul_pagos_pendientes));
             sem_wait(&(me->sem_prioridad_max_otro_nodo));
-            printf("Contador MAX: %d\n", me->contador_procesos_max_SC);
+            //printf("Contador MAX: %d\n", me->contador_procesos_max_SC);
             if (me->contador_procesos_max_SC >= EVITAR_RETECION_EM || (me->contador_anul_pagos_pendientes == 0 && me->prioridad_max_otro_nodo != 0)){
                 #ifdef __PRINT_PROCESO
                 printf("PAGOS --> Quiero evitar la exclusión mutua o ya no hay procesos de esta prioridad en mi nodo.\n");
@@ -244,7 +243,7 @@ int main(int argc, char *argv[]){
                         int i;
                         sem_wait(&(me->sem_contador_consultas_pendientes));
                         for(i = 0; i < me->contador_consultas_pendientes; i++){
-                            printf("consultas pend = %d\n", me->contador_consultas_pendientes);
+                            //printf("consultas pend = %d\n", me->contador_consultas_pendientes);
                             sem_post(&(me->sem_consult_pend));
                         }
                         sem_post(&(me->sem_contador_consultas_pendientes));
@@ -267,7 +266,7 @@ int main(int argc, char *argv[]){
         }
     }
     time =(timeFinSC.tv_sec - timeSC.tv_sec)*1000 + (timeFinSC.tv_usec - timeSC.tv_usec)/1000.0;
-    fprintf (ficheroSalida, "[%i,Pagos,%d]\n", memoria_id , time);
+    fprintf (ficheroSalida, "[%i,Pagos,%f]\n", memoria_id , time);
 
 
     

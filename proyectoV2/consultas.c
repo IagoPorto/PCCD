@@ -43,7 +43,6 @@ int main(int argc, char *argv[]){
         //Enviamos peticiones
         send_peticiones(me, mi_id, CONSULTAS);
         // ACABAMOS CON EL ENVIO DE PETICIONES AHORA ME TOCA ESPERAR.
-        printf("Espero\n");
         sem_wait(&(me->sem_consult_pend));
         
         
