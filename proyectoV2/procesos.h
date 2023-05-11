@@ -13,10 +13,10 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
-#define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
-#define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
+//#define __PRINT_RX        // comentar en caso de no querer mensajes del proceso receptor
+//#define __PRINT_PROCESO   // comentar en caso de no querer mensajes de los procesos escritores del nodo.
 //#define __PRINT_CONSULTAS // comentar en caso deno querer mensajes de los procesos consultas.
-#define __DEBUG
+//#define __DEBUG
 
 #define N 4 // --> nodos
 #define P 3 // --> prioridades
@@ -27,7 +27,7 @@
 #define ADMIN_RESER 2
 #define CONSULTAS 1
 
-#define EVITAR_RETECION_EM 1 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
+#define EVITAR_RETECION_EM 2 // variable para limitar la ejecución de procesos en nodo, y asi evitar la retención de exclusión mutua.
 
 struct msgbuf_mensaje{
 
