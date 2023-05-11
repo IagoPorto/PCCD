@@ -1,4 +1,5 @@
 #include "procesos.h"
+#include <sys/time.h>
 
 int main(int argc, char *argv[]){
 
@@ -6,6 +7,9 @@ int main(int argc, char *argv[]){
         printf("La forma correcta de ejecución es: %s \"id_nodo\"\n", argv[0]);
         return -1;
     }
+     struct timeval timeInicio, timeSC,timeFinSC, timeFin;
+
+     FILE * ficheroSalida= fopen ("salida.txt", "a");
 
     int mi_id = atoi(argv[1]);
     //int i;
@@ -21,6 +25,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("ADMIN --> Hola\n"); 
     #endif
+
+    gettimeofday (&timeInicio, NULL);
+
     sem_wait(&(me->sem_contador_reservas_admin_pendientes));
     me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes + 1;
     sem_wait(&(me->sem_testigo));
@@ -87,6 +94,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("ADMIN --> VOY A LA SCEM .\n");
     #endif
+
+    gettimeofday (&timeSC, NULL);
+
     sem_wait(&(me->sem_contador_reservas_admin_pendientes));
     me->contador_reservas_admin_pendientes = me->contador_reservas_admin_pendientes - 1;
     sem_post(&(me->sem_contador_reservas_admin_pendientes));
@@ -100,6 +110,7 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("ADMIN --> salgo de la SCEM.\n");
     #endif
+    gettimeofday (&timeFinSC, NULL);
     
     set_prioridad_max(me);
 
@@ -252,6 +263,19 @@ int main(int argc, char *argv[]){
             }
         }
     }
+
+    gettimeofday (&timeFin, NULL);
+
+    int secondsSC = (timeSC.tv_sec - timeInicio.tv_sec);
+    int microsSC = ((secondsSC * 1000000) + timeSC.tv_usec) - (timeInicio.tv_usec);
+
+    int secondsSalir = (timeFin.tv_sec - timeFinSC.tv_sec);
+    int microsSalir= ((secondsSalir * 1000000) + timeFin.tv_usec) - (timeFinSC.tv_usec);
+
+
+   //tiempo que tarda en entrar en la SC en microsegundos,tiempo que tarda en salir desde que sale de SC en microsegundos
+    fprintf (ficheroSalida, "[%i,Admin,%i,%i]\n", memoria_id ,microsSC,microsSalir);
+
     
     return 0;
 }

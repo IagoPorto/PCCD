@@ -1,4 +1,5 @@
 #include "procesos.h"
+#include <sys/time.h>
 
 int main(int argc, char *argv[]){
 
@@ -6,6 +7,10 @@ int main(int argc, char *argv[]){
         printf("La forma correcta de ejecución es: %s \"id_nodo\"\n", argv[0]);
         return -1;
     }
+
+     struct timeval timeInicio, timeSC,timeFinSC, timeFin;
+
+     FILE * ficheroSalida= fopen ("salida.txt", "a");
 
     int mi_id = atoi(argv[1]);
     //int i;
@@ -22,6 +27,7 @@ int main(int argc, char *argv[]){
     printf("CONSULTAS --> Hola\n"); 
     #endif
     sleep(3);
+    gettimeofday (&timeInicio, NULL);
     sem_wait(&(me->sem_contador_consultas_pendientes));
     me->contador_consultas_pendientes = me->contador_consultas_pendientes + 1;
     sem_wait(&(me->sem_testigo));
@@ -107,6 +113,9 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("CONSULTAS --> VOY A LA SC CONCURRENTE DE CONSULTAS .\n");
     #endif
+
+    gettimeofday (&timeSC, NULL);
+
     sem_wait(&(me->sem_dentro_C));
     me->dentro_C = me->dentro_C + 1;
     sem_post(&(me->sem_dentro_C));
@@ -114,6 +123,8 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("CONSULTAS --> salgo de la SCEM.\n");
     #endif
+    gettimeofday (&timeFinSC, NULL);
+
     sem_wait(&(me->sem_contador_consultas_pendientes));
     me->contador_consultas_pendientes = me->contador_consultas_pendientes - 1;
     sem_post(&(me->sem_contador_consultas_pendientes));
@@ -155,5 +166,18 @@ int main(int argc, char *argv[]){
         
 
     }
+
+    gettimeofday (&timeFin, NULL);
+
+    int secondsSC = (timeSC.tv_sec - timeInicio.tv_sec);
+    int microsSC = ((secondsSC * 1000000) + timeSC.tv_usec) - (timeInicio.tv_usec);
+
+    int secondsSalir = (timeFin.tv_sec - timeFinSC.tv_sec);
+    int microsSalir= ((secondsSalir * 1000000) + timeFin.tv_usec) - (timeFinSC.tv_usec);
+
+
+   //tiempo que tarda en entrar en la SC en microsegundos,tiempo que tarda en salir desde que sale de SC en microsegundos
+    fprintf (ficheroSalida, "[%i,Consultas,%i,%i]\n", memoria_id ,microsSC,microsSalir);
+
     return 0;
 }
