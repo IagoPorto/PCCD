@@ -8,9 +8,8 @@ int main(int argc, char *argv[]){
     }
 
     struct timeval timeInicio, timeSC,timeFinSC, timeFin;
-    char tipoProceso;
-    double time;
 
+  
     FILE * ficheroSalida= fopen ("salida.txt", "a");
 
 
@@ -265,8 +264,17 @@ int main(int argc, char *argv[]){
             }
         }
     }
-    time =(timeFinSC.tv_sec - timeSC.tv_sec)*1000 + (timeFinSC.tv_usec - timeSC.tv_usec)/1000.0;
-    fprintf (ficheroSalida, "[%i,Pagos,%f]\n", memoria_id , time);
+   gettimeofday (&timeFin, NULL);
+
+    int secondsSC = (timeSC.tv_sec - timeInicio.tv_sec);
+    int microsSC = ((secondsSC * 1000000) + timeSC.tv_usec) - (timeInicio.tv_usec);
+
+    int secondsSalir = (timeFin.tv_sec - timeFinSC.tv_sec);
+    int microsSalir= ((secondsSalir * 1000000) + timeFin.tv_usec) - (timeFinSC.tv_usec);
+
+
+   //tiempo que tarda en entrar en la SC en microsegundos,tiempo que tarda en salir desde que sale de SC en microsegundos
+    fprintf (ficheroSalida, "[%i,Pagos,%i,%i]\n", memoria_id ,microsSC,microsSalir);
 
 
     
