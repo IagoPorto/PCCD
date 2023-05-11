@@ -13,6 +13,7 @@ int main(int argc, char *argv[]){
     FILE * ficheroSalida= fopen ("salida.txt", "a");
 
 
+
     int mi_id = atoi(argv[1]);
     //int i;
     memoria *me = NULL;
@@ -274,7 +275,7 @@ int main(int argc, char *argv[]){
 
 
    //tiempo que tarda en entrar en la SC en microsegundos,tiempo que tarda en salir desde que sale de SC en microsegundos
-    fprintf (ficheroSalida, "[%i,Pagos,inicio-SC%i,finSC-fin%i]\n", memoria_id ,microsSC,microsSalir);
+    fprintf (ficheroSalida, "[%i,Pagos,%i,%i]\n", memoria_id ,microsSC,microsSalir);
 
 
     
