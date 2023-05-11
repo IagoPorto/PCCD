@@ -21,7 +21,7 @@
 #define N 4 // --> nodos
 #define P 3 // --> prioridades
 #define MAX_ESPERA 10
-#define SLEEP 3
+#define SLEEP 5
 
 #define PAGOS_ANUL 3
 #define ADMIN_RESER 2
@@ -348,7 +348,7 @@ void send_testigo_consultas_master(int mi_id, memoria *me){//enviar el testigo a
 
   sem_wait(&(me->sem_prioridad_max_otro_nodo));
   sem_wait(&(me->sem_prioridad_maxima));
-  if(me->prioridad_max_otro_nodo > me->prioridad_maxima){
+  if((me->prioridad_max_otro_nodo > me->prioridad_maxima) && me->prioridad_max_otro_nodo != CONSULTAS){
     printf("envio el testigo a quien corresponda\n");
     sem_post(&(me->sem_prioridad_max_otro_nodo));
     sem_post(&(me->sem_prioridad_maxima));

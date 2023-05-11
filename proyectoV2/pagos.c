@@ -27,8 +27,6 @@ int main(int argc, char *argv[]){
     sem_wait(&(me->sem_turno_PA));
     sem_wait(&(me->sem_turno));
     sem_wait(&(me->sem_contador_procesos_max_SC));
-    sleep(2);
-    
     if ((!me->testigo && (me-> contador_anul_pagos_pendientes == 1)) || 
          (me->testigo && me->turno_PA && ((me->contador_anul_pagos_pendientes + me->contador_procesos_max_SC - EVITAR_RETECION_EM) == 1))
          || (me->testigo && (me-> contador_anul_pagos_pendientes == 1) && !me->turno_PA && me->turno)){ 

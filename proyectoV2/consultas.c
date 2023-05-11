@@ -21,6 +21,7 @@ int main(int argc, char *argv[]){
     #ifdef __PRINT_PROCESO
     printf("CONSULTAS --> Hola\n"); 
     #endif
+    sleep(3);
     sem_wait(&(me->sem_contador_consultas_pendientes));
     me->contador_consultas_pendientes = me->contador_consultas_pendientes + 1;
     sem_wait(&(me->sem_testigo));
