@@ -22,7 +22,7 @@
 #define N 4 // --> nodos
 #define P 3 // --> prioridades
 #define MAX_ESPERA 10
-#define SLEEP 5
+#define SLEEP 1
 
 #define PAGOS_ANUL 3
 #define ADMIN_RESER 2

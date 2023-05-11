@@ -156,7 +156,7 @@ int main(int argc,char *argv[]){
         for(p = 0;p < numAdmin;p++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
-                execl ("administracion", "administracion",iAux, (char *) NULL);
+                execl ("admin", "admin",iAux, (char *) NULL);
                 return 0;
             }
             

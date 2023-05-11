@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
      struct timeval timeInicio, timeSC,timeFinSC, timeFin;
 
      FILE * ficheroSalida= fopen ("salida.txt", "a");
-
+    sleep(0.5);
     int mi_id = atoi(argv[1]);
     //int i;
     memoria *me = NULL;
