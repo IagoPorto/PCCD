@@ -275,7 +275,7 @@ int main(int argc, char *argv[]){
 
 
    //tiempo que tarda en entrar en la SC en microsegundos,tiempo que tarda en salir desde que sale de SC en microsegundos
-    fprintf (ficheroSalida, "[%i,Pagos,%i,%i]\n", memoria_id ,microsSC,microsSalir);
+    fprintf (ficheroSalida, "[%i,Pagos,%i,%i]\n", mi_id ,microsSC,microsSalir);
 
 
     
