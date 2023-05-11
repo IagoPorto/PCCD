@@ -16,6 +16,7 @@ proyectoV2/pagos
 proyectoV2/reservas
 proyectoV2/receptor
 proyectoV2/admin
+proyectoV2/inicio
 proyectoV2/*.txt
 .vscode/*
 .vscode
