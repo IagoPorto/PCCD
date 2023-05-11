@@ -16,8 +16,8 @@ int main(int argc,char *argv[]){
 
      
     char entrada [50], numeros [3];
-    int i, j, k, cont, nNodosAux, numPagos = 0,numAnulaciones = 0,numAdmin = 0,numReservas = 0,numConsultas = 0,nProcConPrio = 0;
-    int numPrioridades = 5;
+    int i, k, cont, nNodosAux, numPagos = 0,numAnulaciones = 0,numAdmin = 0,numReservas = 0,numConsultas = 0;
+
     int n = 0;
    
     FILE * ficheroIn = fopen (argv [1], "r");
