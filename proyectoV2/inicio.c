@@ -112,15 +112,12 @@ int main(int argc,char *argv[]){
     int numProcHijos = (numPagos+numAnulaciones+numReservas+numAdmin+numConsultas)*nNodosAux;
     int procHijo[numProcHijos];
 
-    int t = 0;
    
     for (i = 1 ;i < nNodosAux + 1 ; i++) {
 
         char iAux [5];
         sprintf (iAux, "%i", i);
-
-        t++;
-        printf("t = %d\n", t);                
+          
 
         for(k = 0;k < numPagos;k++){
            
@@ -181,6 +178,7 @@ int main(int argc,char *argv[]){
     }
 
     fclose (ficheroIn);
+    printf("dale\n");
    
     return 0;
 

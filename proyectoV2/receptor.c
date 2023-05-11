@@ -104,8 +104,9 @@ int main(int argc, char *argv[]){
 
     while (true){
         // RECIBIMOS PETICIÓN
+        sleep(0.5);
         if (msgrcv(id_de_mi_buzon, &mensaje_rx, sizeof(mensaje_rx), 0, 0) == -1){
-            printf("Proceso Rx: ERROR: Hubo un error al recibir un mensaje en el RECEPTOR.\n");
+            printf("Proceso Rx: ERROR: Hubo un error al recibir un mensaje en el RECEPTOR %d.\n", mi_id);
             return -1;
         }
 
@@ -114,7 +115,7 @@ int main(int argc, char *argv[]){
             case (long)1: // EL mensaje es una petición.
                 //printf("\tCASO 1:\n");
                 #ifdef __PRINT_RX
-                printf("RECEPTOR: He recibido una petición (%d) del nodo: %d, con prioridad: %d\n", mensaje_rx.peticion, mensaje_rx.id, mensaje_rx.prioridad);
+                printf("RECEPTOR %d: He recibido una petición (%d) del nodo: %d, con prioridad: %d\n",mi_id, mensaje_rx.peticion, mensaje_rx.id, mensaje_rx.prioridad);
                 #endif
                 sem_wait(&(me->sem_peticiones));
                 me->peticiones[mensaje_rx.id - 1][mensaje_rx.prioridad - 1] = max(me->peticiones[mensaje_rx.id - 1][mensaje_rx.prioridad - 1], mensaje_rx.peticion);
@@ -125,7 +126,7 @@ int main(int argc, char *argv[]){
                 printf("La prioridad máxima de otro nodo es: %i\n", me->prioridad_max_otro_nodo);
                 #endif
                 sem_post(&(me->sem_prioridad_max_otro_nodo));
-               // printf("\n");
+                // printf("\n");
                 if(mensaje_rx.prioridad != CONSULTAS){
                     sem_wait(&(me->sem_turno_C));
                     sem_wait(&(me->sem_testigo));
@@ -136,7 +137,7 @@ int main(int argc, char *argv[]){
                         if (me->prioridad_maxima < mensaje_rx.prioridad && me->prioridad_maxima != 0) {
                             sem_post(&(me->sem_prioridad_maxima));
                             #ifdef __PRINT_RX
-                            printf("RECEPTOR: EL NODO %i TIENE UNA PRIORIDAD MAS ALTA\n", mensaje_rx.id);
+                            printf("RECEPTOR %d: EL NODO %i TIENE UNA PRIORIDAD MAS ALTA\n",mi_id, mensaje_rx.id);
                             #endif
                         }else{
                             if (me->prioridad_maxima == 0){
@@ -172,7 +173,7 @@ int main(int argc, char *argv[]){
             case (long)2:// El mensaje es el testigo
                 //printf("\tCASO 2:\n");
                 #ifdef __PRINT_RX
-                printf("RECEPTOR: He recibido el testigo del nodo: %d\n", mensaje_rx.id);
+                printf("RECEPTOR %d: He recibido el testigo del nodo: %d\n",mi_id, mensaje_rx.id);
                 #endif
                 sem_wait(&(me->sem_prioridad_max_otro_nodo));
                 me->prioridad_max_otro_nodo = 0;
@@ -309,7 +310,7 @@ int main(int argc, char *argv[]){
                 //printf("\tCASO 3:\n");
 
                 #ifdef __PRINT_RX
-                printf("RECEPTOR: He recibido el testigo FALSO CONSULTAS del nodo: %d\n", mensaje_rx.id);
+                printf("RECEPTOR %d: He recibido el testigo FALSO CONSULTAS del nodo: %d\n",mi_id, mensaje_rx.id);
                 #endif
                 //Si nos llega el testigo pero hay mas prioridad lo devolvemos
                 //si no, turno de consultas a 1
@@ -380,7 +381,7 @@ int main(int argc, char *argv[]){
             case (long)4:
                 //printf("\tCASO 4:\n");
                 #ifdef __PRINT_RX
-                printf("RECEPTOR: He recibido el testigo CONSULTAS de un nodo NO master del nodo: %d\n", mensaje_rx.id);
+                printf("RECEPTOR %d: He recibido el testigo CONSULTAS de un nodo NO master del nodo: %d\n",mi_id, mensaje_rx.id);
                 #endif
                 sem_wait(&(me->sem_nodos_con_consultas));
                 me->nodos_con_consultas[mensaje_rx.id - 1] = 0;
