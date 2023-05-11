@@ -16,7 +16,7 @@ int main(int argc,char *argv[]){
 
      
     char entrada [50], numeros [3];
-    int i, j, k, cont, nNodosAux, numProcesosAux,nProcConPrio;
+    int i, j, k, cont, nNodosAux, numPagos = 0,numAnulaciones = 0,numAdmin = 0,numReservas = 0,numConsultas = 0,nProcConPrio = 0;
     int numPrioridades = 5;
     int n = 0;
    
@@ -55,10 +55,29 @@ int main(int argc,char *argv[]){
 
             printf ("nNodos = %i\n", nNodosAux);
          
-        } else if (strcmp (variable, "numProcesos") == 0) {
+        } else if (strcmp (variable, "pagos") == 0) {
 
-            numProcesosAux = i;
-            printf ("numProcesos = %i\n", numProcesosAux);
+            numPagos = i;
+            printf ("numPagos = %i\n", numPagos);
+        }else if (strcmp (variable, "anulaciones") == 0) {
+
+            numAnulaciones = i;
+            printf ("numAnulaciones = %i\n", numAnulaciones);
+        }
+        else if (strcmp (variable, "reservas") == 0) {
+
+            numReservas = i;
+            printf ("numReservas = %i\n", numReservas);
+        }
+        else if (strcmp (variable, "admin") == 0) {
+
+            numAdmin = i;
+            printf ("numAdmin = %i\n", numAdmin);
+        }
+        else if (strcmp (variable, "consultas") == 0) {
+
+            numConsultas = i;
+            printf ("numConsultas = %i\n", numConsultas);
         }
 
 
@@ -82,58 +101,74 @@ int main(int argc,char *argv[]){
             sprintf (iAux, "%i", i);
 
             execl ("receptor", "receptor",iAux, (char *) NULL);
+
                                
-        }
+        } 
+
 
     }
 
 
-
+    int numProcHijos = (numPagos+numAnulaciones+numReservas+numAdmin+numConsultas)*nNodosAux;
+    int procHijo[numProcHijos];
    
-     for (i = 1 ;i < nNodosAux + 1 ; i++) {
+    for (i = 1 ;i < nNodosAux + 1 ; i++) {
 
         char iAux [5];
         sprintf (iAux, "%i", i);
-        int procHijo[numProcesosAux*numPrioridades];
 
 
-        for (k = 0; k < numProcesosAux; k++) {
-            for(j = 0 ; j < numPrioridades; j++){
+                    
 
-                procHijo[n] = fork ();
+        for(k = 0;k < numPagos;k++){
+            procHijo [n] = fork ();
+            if (procHijo [n] == 0) {
 
-                if (procHijo[n] == 0) {
-                    if(j == 0){
-                        execl ("pagos", "pagos",iAux, (char *) NULL);
-                         
-                        n++;
-
-                    }
-                    if( j == 1){
-                        execl ("reservas", "reservas",iAux, (char *) NULL);
-                        n++;
-
-
-                    }
-                    if( j == 2){
-                        execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
-                        n++;
-                    }
-                    if( j == 3){
-                        execl ("administracion", "administracion",iAux, (char *) NULL);
-                        n++;
-                        
-                      
-                    }
-
-                    //execl ("consultas", "consultas",iAux, (char *) NULL);
-
-                    return 0;
-                }
-
-               
+            execl ("pagos", "pagos",iAux, (char *) NULL);
+            n++;
             }
         }
+        
+        for(int l = 0;l < numAnulaciones;l++){
+            procHijo[n] = fork ();
+            if (procHijo [n] == 0) {
+            execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
+            n++;
+            }
+
+        }
+
+        for(int m = 0;m < numReservas;m++){
+            procHijo[n] = fork ();
+            if (procHijo [n] == 0) {
+            execl ("reservas", "reservas",iAux, (char *) NULL);
+            n++;
+            }
+
+        }
+
+        for(int p = 0;p < numAdmin;p++){
+            procHijo[n] = fork ();
+            if (procHijo [n] == 0) {
+            execl ("administracion", "administracion",iAux, (char *) NULL);
+            n++;
+            }
+
+
+        }
+       
+        for(int  y = 0;y < numConsultas;y++){
+            procHijo[n] = fork ();
+            if (procHijo [n] == 0) {
+            execl ("consultas", "consultas",iAux, (char *) NULL);
+            n++;
+            }
+
+        }
+       
+        
+
+        
 
     }
 
