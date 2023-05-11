@@ -29,8 +29,6 @@ int main(int argc,char *argv[]){
         return 0;
     }
 
-
-
     fgets (entrada, 50, ficheroIn);
 
 
