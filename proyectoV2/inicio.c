@@ -19,6 +19,7 @@ int main(int argc,char *argv[]){
     int i, k, cont, nNodosAux, numPagos = 0,numAnulaciones = 0,numAdmin = 0,numReservas = 0,numConsultas = 0;
 
     int n = 0;
+    int l, p, m, y;
    
     FILE * ficheroIn = fopen (argv [1], "r");
 
@@ -109,16 +110,20 @@ int main(int argc,char *argv[]){
 
     int numProcHijos = (numPagos+numAnulaciones+numReservas+numAdmin+numConsultas)*nNodosAux;
     int procHijo[numProcHijos];
+
+    printf("NUMnodos = %d\n", nNodosAux);
+    int t = 0;
    
     for (i = 1 ;i < nNodosAux + 1 ; i++) {
 
         char iAux [5];
         sprintf (iAux, "%i", i);
 
-
-                    
+        t++;
+        printf("t = %d\n", t);                
 
         for(k = 0;k < numPagos;k++){
+           
             procHijo [n] = fork ();
             if (procHijo [n] == 0) {
 
@@ -127,7 +132,7 @@ int main(int argc,char *argv[]){
             }
         }
         
-        for(int l = 0;l < numAnulaciones;l++){
+        for(l = 0;l < numAnulaciones;l++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
             execl ("anulaciones", "anulaciones",iAux, (char *) NULL);
@@ -136,7 +141,7 @@ int main(int argc,char *argv[]){
 
         }
 
-        for(int m = 0;m < numReservas;m++){
+        for(m = 0;m < numReservas;m++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
             execl ("reservas", "reservas",iAux, (char *) NULL);
@@ -145,7 +150,7 @@ int main(int argc,char *argv[]){
 
         }
 
-        for(int p = 0;p < numAdmin;p++){
+        for(p = 0;p < numAdmin;p++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
             execl ("administracion", "administracion",iAux, (char *) NULL);
@@ -155,7 +160,7 @@ int main(int argc,char *argv[]){
 
         }
        
-        for(int  y = 0;y < numConsultas;y++){
+        for(y = 0;y < numConsultas;y++){
             procHijo[n] = fork ();
             if (procHijo [n] == 0) {
             execl ("consultas", "consultas",iAux, (char *) NULL);
